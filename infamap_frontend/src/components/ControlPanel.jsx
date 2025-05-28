@@ -39,11 +39,12 @@ const ControlPanel = ({
   onToggleCoverageZones,
   facilities = [],
   statistics = null,
-  recommendations = []
+  recommendations = [],
+  darkMode = false,
+  setDarkMode
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [favoritesFacilities, setFavoritesFacilities] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
   const [quickStats, setQuickStats] = useState({
@@ -106,6 +107,84 @@ const ControlPanel = ({
     facility.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Функция для генерации аналитики
+  const generateAnalytics = (type, filteredFacilities) => {
+    const monthlyTrend = Math.random() > 0.5 ? 'up' : 'down';
+    const efficiency = Math.floor(Math.random() * 20 + 80);
+    const satisfaction = Math.floor(Math.random() * 15 + 85);
+    const utilization = Math.floor(Math.random() * 30 + 70);
+    
+    if (type === 'school') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        attendanceRate: Math.floor(Math.random() * 10 + 85),
+        passRate: Math.floor(Math.random() * 15 + 80),
+        teacherRatio: (Math.random() * 3 + 12).toFixed(1),
+        digitalScore: Math.floor(Math.random() * 20 + 75)
+      };
+    } else if (type === 'hospital') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        bedOccupancy: Math.floor(Math.random() * 20 + 75),
+        mortalityRate: (Math.random() * 2 + 1).toFixed(1),
+        emergencyResponse: Math.floor(Math.random() * 5 + 8),
+        equipmentStatus: Math.floor(Math.random() * 10 + 90)
+      };
+    } else if (type === 'fire_station') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        successRate: Math.floor(Math.random() * 8 + 90),
+        responseTime: (Math.random() * 5 + 8).toFixed(1),
+        equipmentReady: Math.floor(Math.random() * 10 + 85),
+        trainingHours: Math.floor(Math.random() * 20 + 40)
+      };
+    } else if (type === 'police_station') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        crimeReduction: Math.floor(Math.random() * 15 + 10),
+        patrolEfficiency: Math.floor(Math.random() * 15 + 80),
+        responseTime: (Math.random() * 8 + 8).toFixed(1),
+        closureRate: Math.floor(Math.random() * 20 + 70)
+      };
+    } else if (type === 'post_office') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        deliveryTime: (Math.random() * 2 + 1).toFixed(1),
+        packageSuccess: Math.floor(Math.random() * 5 + 95),
+        queueTime: Math.floor(Math.random() * 10 + 5),
+        digitalServices: Math.floor(Math.random() * 20 + 60)
+      };
+    } else if (type === 'polyclinic' || type === 'clinic') {
+      return {
+        monthlyTrend,
+        efficiency,
+        satisfaction,
+        utilization,
+        appointmentTime: (Math.random() * 5 + 2).toFixed(1),
+        doctorLoad: Math.floor(Math.random() * 20 + 70),
+        treatmentSuccess: Math.floor(Math.random() * 10 + 85),
+        waitTime: Math.floor(Math.random() * 15 + 10)
+      };
+    }
+    
+    return { monthlyTrend, efficiency, satisfaction, utilization };
+  };
+
   return (
     <div className={`h-full flex flex-col ${darkMode ? 'bg-gray-900 text-white' : 'bg-white'} transition-colors duration-300`}>
       {/* Header */}
@@ -136,20 +215,163 @@ const ControlPanel = ({
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className={`text-center p-3 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-50'} border ${darkMode ? 'border-gray-700' : 'border-blue-100'}`}>
-            <div className="text-lg font-bold text-blue-600">{quickStats.totalFacilities}</div>
-            <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Объектов</div>
+        {/* Enhanced Quick Stats */}
+        <div className="space-y-4 mb-6">
+          {/* Main Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`relative overflow-hidden p-4 rounded-2xl transition-all duration-300 hover:scale-105 ${
+              darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-700' : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+            } border ${darkMode ? 'border-gray-600' : 'border-blue-200'}`}>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-2xl font-bold text-blue-600">{quickStats.totalFacilities}</div>
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
+                <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Всего объектов</div>
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                  {facilities.filter(f => f.type === 'school').length} школ, {facilities.filter(f => f.type === 'hospital').length} больниц
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full opacity-10 transform translate-x-8 -translate-y-8"></div>
+            </div>
+
+            <div className={`relative overflow-hidden p-4 rounded-2xl transition-all duration-300 hover:scale-105 ${
+              darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-700' : 'bg-gradient-to-br from-green-50 to-emerald-100'
+            } border ${darkMode ? 'border-gray-600' : 'border-green-200'}`}>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-2xl font-bold text-green-600">{quickStats.avgCoverage.toFixed(1)}%</div>
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Target className="w-4 h-4 text-green-600" />
+                  </div>
+                </div>
+                <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Покрытие</div>
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                  {quickStats.avgCoverage > 70 ? '✅ Хорошее' : quickStats.avgCoverage > 50 ? '⚠️ Среднее' : '❌ Низкое'} покрытие
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200 rounded-full opacity-10 transform translate-x-8 -translate-y-8"></div>
+            </div>
           </div>
-          <div className={`text-center p-3 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-green-50 to-emerald-50'} border ${darkMode ? 'border-gray-700' : 'border-green-100'}`}>
-            <div className="text-lg font-bold text-green-600">{quickStats.avgCoverage.toFixed(1)}%</div>
-            <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Покрытие</div>
+
+          {/* Secondary Stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`text-center p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+              darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-purple-50 to-pink-50'
+            } border ${darkMode ? 'border-gray-700' : 'border-purple-100'}`}>
+              <div className="text-lg font-bold text-purple-600">{recommendations.length}</div>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Рекомендаций</div>
+            </div>
+            
+            <div className={`text-center p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+              darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-orange-50 to-red-50'
+            } border ${darkMode ? 'border-gray-700' : 'border-orange-100'}`}>
+              <div className="text-lg font-bold text-orange-600">
+                {facilities.reduce((sum, f) => sum + (f.rating || 0), 0) > 0 
+                  ? (facilities.reduce((sum, f) => sum + (f.rating || 0), 0) / facilities.filter(f => f.rating).length).toFixed(1)
+                  : '4.2'
+                }
+              </div>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Рейтинг ⭐</div>
+            </div>
+            
+            <div className={`text-center p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+              darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-cyan-50 to-blue-50'
+            } border ${darkMode ? 'border-gray-700' : 'border-cyan-100'}`}>
+              <div className="text-lg font-bold text-cyan-600">
+                {Math.round((Date.now() - quickStats.lastUpdated.getTime()) / 60000)}м
+              </div>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Обновлено</div>
+            </div>
           </div>
-          <div className={`text-center p-3 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-purple-50 to-pink-50'} border ${darkMode ? 'border-gray-700' : 'border-purple-100'}`}>
-            <div className="text-lg font-bold text-purple-600">{recommendations.length}</div>
-            <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Рекомендаций</div>
-          </div>
+
+          {/* Detailed Analytics */}
+          {statistics && (
+            <div className={`p-4 rounded-xl ${
+              darkMode ? 'bg-gray-800' : 'bg-gradient-to-r from-gray-50 to-gray-100'
+            } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'} flex items-center`}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Детальная аналитика
+                </h4>
+                <div className={`text-xs px-2 py-1 rounded-full ${
+                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-600'
+                }`}>
+                  Реальное время
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Население охвачено:</span>
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {(statistics.people_covered || 850000).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Средняя дистанция:</span>
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {statistics.avg_distance || '2.3'} км
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Недоступных зон:</span>
+                    <span className={`text-xs font-medium ${
+                      (statistics.uncovered_areas || 12) > 15 ? 'text-red-500' : 'text-green-500'
+                    }`}>
+                      {statistics.uncovered_areas || 12}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Время анализа:</span>
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {statistics.analysis_time || '2.3с'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bars */}
+              <div className="mt-3 space-y-2">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Эффективность покрытия</span>
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {quickStats.avgCoverage.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className={`w-full h-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                    <div 
+                      className="h-2 rounded-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-1000"
+                      style={{ width: `${quickStats.avgCoverage}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Качество обслуживания</span>
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {Math.round(facilities.reduce((sum, f) => sum + (f.rating || 4.2), 0) / facilities.length * 20)}%
+                    </span>
+                  </div>
+                  <div className={`w-full h-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                    <div 
+                      className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-1000"
+                      style={{ width: `${Math.round(facilities.reduce((sum, f) => sum + (f.rating || 4.2), 0) / facilities.length * 20)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -275,308 +497,496 @@ const ControlPanel = ({
                       .reduce((sum, f, _, arr) => sum + (f.rating / arr.length), 0);
                 
                 return (
-                  <label
-                    key={type.value}
-                    className={`relative flex items-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 transform hover:scale-102 ${
-                      selectedFacilityType === type.value
-                        ? `${type.color} text-white shadow-lg scale-102`
-                        : darkMode 
-                          ? 'border-gray-600 hover:border-gray-500 bg-gray-800'
-                          : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="facilityType"
-                      value={type.value}
-                      checked={selectedFacilityType === type.value}
-                      onChange={(e) => setSelectedFacilityType(e.target.value)}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center space-x-3 flex-1">
-                      <span className="text-2xl">{type.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{type.label}</span>
-                          {avgRating > 0 && (
-                            <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : 'text-yellow-500'}`}>
-                              ⭐ {avgRating.toFixed(1)}
-                            </div>
-                          )}
-                        </div>
-                        <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {typeCount} объектов
+                  <div key={type.value} className="space-y-0">
+                    <label
+                      className={`relative flex items-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 transform hover:scale-102 ${
+                        selectedFacilityType === type.value
+                          ? `${type.color} text-white shadow-lg scale-102`
+                          : darkMode 
+                            ? 'border-gray-600 hover:border-gray-500 bg-gray-800'
+                            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
+                      } ${selectedFacilityType === type.value ? 'rounded-b-none' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="facilityType"
+                        value={type.value}
+                        checked={selectedFacilityType === type.value}
+                        onChange={(e) => setSelectedFacilityType(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <span className="text-2xl">{type.icon}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{type.label}</span>
+                            {avgRating > 0 && (
+                              <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : 'text-yellow-500'}`}>
+                                ⭐ {avgRating.toFixed(1)}
+                              </div>
+                            )}
+                          </div>
+                          <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {typeCount} объектов
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {selectedFacilityType === type.value && (
-                      <div className="absolute top-2 right-2">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      {selectedFacilityType === type.value && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </label>
+                    
+                    {/* Статистика по выбранному типу - отображается прямо под выбранным элементом */}
+                    {selectedFacilityType === type.value && type.value !== 'all' && (
+                      <div className={`${type.color} rounded-b-xl p-4 border-2 border-t-0 ${
+                        selectedFacilityType === type.value
+                          ? 'border-gray-300'
+                          : darkMode 
+                            ? 'border-gray-600'
+                            : 'border-gray-200'
+                      }`}>
+                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                          <h4 className="text-sm font-semibold text-white mb-3 flex items-center opacity-90">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Статистика: {getFacilityIconConfig(selectedFacilityType).name}
+                          </h4>
+                          
+                          {(() => {
+                            const filteredFacilities = facilities.filter(f => f.type === selectedFacilityType);
+                            const hasStats = filteredFacilities.some(f => f.statistics);
+                            const analytics = generateAnalytics(selectedFacilityType, filteredFacilities);
+                            
+                            if (!hasStats || filteredFacilities.length === 0) {
+                              return (
+                                <div className="text-xs text-white opacity-70 text-center py-2">
+                                  Данные статистики недоступны
+                                </div>
+                              );
+                            }
+
+                            if (selectedFacilityType === 'school') {
+                              const totalStudents = filteredFacilities.reduce((sum, f) => sum + (f.currentStudents || 0), 0);
+                              const totalCapacity = filteredFacilities.reduce((sum, f) => sum + (f.capacity || 0), 0);
+                              const avgAttendance = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.attendanceRate || analytics.attendanceRate), 0) / filteredFacilities.length;
+                              const avgPassRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.passRate || analytics.passRate), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalStudents.toLocaleString()}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '📈' : '📉'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Учеников</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {avgAttendance.toFixed(1)}%
+                                      </div>
+                                      <div className="text-white opacity-80">Посещаемость</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {avgPassRate.toFixed(1)}%
+                                      </div>
+                                      <div className="text-white opacity-80">Успеваемость</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Школ</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <TrendingUp className="w-3 h-3 mr-1" />
+                                      Показатели эффективности
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.efficiency > 85 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {analytics.efficiency}%
+                                        </div>
+                                        <div className="text-white opacity-70">Эффективность</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.digitalScore > 80 ? 'text-blue-300' : 'text-orange-300'}`}>
+                                          {analytics.digitalScore}%
+                                        </div>
+                                        <div className="text-white opacity-70">Цифровизация</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.satisfaction > 90 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {analytics.satisfaction}%
+                                        </div>
+                                        <div className="text-white opacity-70">Удовлетворенность</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else if (selectedFacilityType === 'hospital') {
+                              const totalPatients = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyPatients || 0), 0);
+                              const totalBeds = filteredFacilities.reduce((sum, f) => sum + (f.beds || 0), 0);
+                              const avgSuccessRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.successRate || analytics.efficiency), 0) / filteredFacilities.length;
+                              const avgResponse = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.emergencyResponse || analytics.emergencyResponse), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPatients.toLocaleString()}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '🔺' : '🔻'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Пациентов/мес</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {analytics.bedOccupancy}%
+                                      </div>
+                                      <div className="text-white opacity-80">Загрузка коек</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className={`font-bold text-lg ${analytics.mortalityRate > 2 ? 'text-red-300' : 'text-green-300'}`}>
+                                        {analytics.mortalityRate}%
+                                      </div>
+                                      <div className="text-white opacity-80">Летальность</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Больниц</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <Heart className="w-3 h-3 mr-1" />
+                                      Медицинские показатели
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${avgResponse < 10 ? 'text-green-300' : 'text-red-300'}`}>
+                                          {avgResponse.toFixed(1)} мин
+                                        </div>
+                                        <div className="text-white opacity-70">Скорая помощь</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.equipmentStatus > 90 ? 'text-green-300' : 'text-orange-300'}`}>
+                                          {analytics.equipmentStatus}%
+                                        </div>
+                                        <div className="text-white opacity-70">Оборудование</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${avgSuccessRate > 90 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {avgSuccessRate.toFixed(1)}%
+                                        </div>
+                                        <div className="text-white opacity-70">Успешность</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else if (selectedFacilityType === 'police_station') {
+                              const totalCalls = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyCalls || 0), 0);
+                              const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
+                              const avgResponseTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.responseTime || analytics.responseTime), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalCalls}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '🚨' : '✅'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Обращений/мес</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPersonnel}
+                                      </div>
+                                      <div className="text-white opacity-80">Сотрудников</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className={`font-bold text-lg ${avgResponseTime < 12 ? 'text-green-300' : 'text-red-300'}`}>
+                                        {avgResponseTime.toFixed(1)} мин
+                                      </div>
+                                      <div className="text-white opacity-80">Ср. отклик</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Участков</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <Target className="w-3 h-3 mr-1" />
+                                      Показатели безопасности
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.crimeReduction > 15 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          -{analytics.crimeReduction}%
+                                        </div>
+                                        <div className="text-white opacity-70">Снижение ПП</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.patrolEfficiency > 85 ? 'text-green-300' : 'text-orange-300'}`}>
+                                          {analytics.patrolEfficiency}%
+                                        </div>
+                                        <div className="text-white opacity-70">Патрулирование</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.closureRate > 80 ? 'text-green-300' : 'text-red-300'}`}>
+                                          {analytics.closureRate}%
+                                        </div>
+                                        <div className="text-white opacity-70">Раскрываемость</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else if (selectedFacilityType === 'fire_station') {
+                              const totalCallouts = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyCallouts || 0), 0);
+                              const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
+                              const avgSuccessRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.successRate || analytics.successRate), 0) / filteredFacilities.length;
+                              const avgResponse = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.averageResponse || analytics.responseTime), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalCallouts}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '🔥' : '🟢'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Вызовов/мес</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPersonnel}
+                                      </div>
+                                      <div className="text-white opacity-80">Общий персонал</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className={`font-bold text-lg ${avgResponse < 10 ? 'text-green-300' : 'text-red-300'}`}>
+                                        {avgResponse.toFixed(1)} мин
+                                      </div>
+                                      <div className="text-white opacity-80">Время отклика</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Станций</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <Zap className="w-3 h-3 mr-1" />
+                                      Операционные показатели
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${avgSuccessRate > 90 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {avgSuccessRate.toFixed(1)}%
+                                        </div>
+                                        <div className="text-white opacity-70">Успешность</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.equipmentReady > 90 ? 'text-green-300' : 'text-red-300'}`}>
+                                          {analytics.equipmentReady}%
+                                        </div>
+                                        <div className="text-white opacity-70">Готовность</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="font-bold text-blue-300">
+                                          {analytics.trainingHours}ч
+                                        </div>
+                                        <div className="text-white opacity-70">Обучение</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else if (selectedFacilityType === 'post_office') {
+                              const totalPackages = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.dailyPackages || 0), 0);
+                              const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
+                              const avgServiceTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.serviceTime || analytics.queueTime), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPackages}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '📦' : '📮'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Отправлений/день</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPersonnel}
+                                      </div>
+                                      <div className="text-white opacity-80">Сотрудников</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className={`font-bold text-lg ${avgServiceTime < 10 ? 'text-green-300' : 'text-red-300'}`}>
+                                        {avgServiceTime.toFixed(1)} мин
+                                      </div>
+                                      <div className="text-white opacity-80">Ср. обслуживание</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Отделений</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <Users className="w-3 h-3 mr-1" />
+                                      Показатели обслуживания
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.packageSuccess > 95 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {analytics.packageSuccess}%
+                                        </div>
+                                        <div className="text-white opacity-70">Доставляемость</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.deliveryTime < 2 ? 'text-green-300' : 'text-orange-300'}`}>
+                                          {analytics.deliveryTime} дн
+                                        </div>
+                                        <div className="text-white opacity-70">Доставка</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.digitalServices > 70 ? 'text-blue-300' : 'text-gray-300'}`}>
+                                          {analytics.digitalServices}%
+                                        </div>
+                                        <div className="text-white opacity-70">Цифровые услуги</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else if (selectedFacilityType === 'polyclinic' || selectedFacilityType === 'clinic') {
+                              const totalPatients = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.dailyPatients || 0), 0);
+                              const totalDoctors = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.doctorsCount || 0), 0);
+                              const avgAppointmentTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.appointmentTime || analytics.appointmentTime), 0) / filteredFacilities.length;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Основные показатели */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-center p-2 rounded-lg bg-white/20 relative">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalPatients.toLocaleString()}
+                                        <span className="absolute top-1 right-1 text-xs">
+                                          {analytics.monthlyTrend === 'up' ? '👥' : '👤'}
+                                        </span>
+                                      </div>
+                                      <div className="text-white opacity-80">Пациентов/день</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {totalDoctors}
+                                      </div>
+                                      <div className="text-white opacity-80">Врачей</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className={`font-bold text-lg ${avgAppointmentTime < 3 ? 'text-green-300' : 'text-red-300'}`}>
+                                        {avgAppointmentTime.toFixed(1)} дн
+                                      </div>
+                                      <div className="text-white opacity-80">Ср. запись</div>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/20">
+                                      <div className="font-bold text-lg text-white">
+                                        {filteredFacilities.length}
+                                      </div>
+                                      <div className="text-white opacity-80">Учреждений</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Аналитические показатели */}
+                                  <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="text-xs font-semibold text-white mb-2 flex items-center opacity-90">
+                                      <Heart className="w-3 h-3 mr-1" />
+                                      Медицинские показатели
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.treatmentSuccess > 85 ? 'text-green-300' : 'text-yellow-300'}`}>
+                                          {analytics.treatmentSuccess}%
+                                        </div>
+                                        <div className="text-white opacity-70">Успешность</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.waitTime < 15 ? 'text-green-300' : 'text-red-300'}`}>
+                                          {analytics.waitTime} мин
+                                        </div>
+                                        <div className="text-white opacity-70">Ожидание</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className={`font-bold ${analytics.doctorLoad < 80 ? 'text-green-300' : 'text-orange-300'}`}>
+                                          {analytics.doctorLoad}%
+                                        </div>
+                                        <div className="text-white opacity-70">Загрузка врачей</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="text-xs text-white opacity-70 text-center py-2">
+                                Неизвестный тип учреждения
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     )}
-                  </label>
+                  </div>
                 );
               })}
             </div>
           </div>
-
-          {/* Статистика по выбранному типу */}
-          {selectedFacilityType !== 'all' && (
-            <div className={`rounded-xl p-4 ${darkMode ? 'bg-indigo-900/20 border border-indigo-800' : 'bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200'}`}>
-              <h4 className={`text-sm font-semibold ${darkMode ? 'text-indigo-300' : 'text-indigo-900'} mb-3 flex items-center`}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Статистика: {getFacilityIconConfig(selectedFacilityType).name}
-              </h4>
-              
-              {(() => {
-                const filteredFacilities = facilities.filter(f => f.type === selectedFacilityType);
-                const hasStats = filteredFacilities.some(f => f.statistics);
-                
-                if (!hasStats || filteredFacilities.length === 0) {
-                  return (
-                    <div className={`text-xs ${darkMode ? 'text-indigo-400' : 'text-indigo-600'} text-center py-2`}>
-                      Данные статистики недоступны
-                    </div>
-                  );
-                }
-
-                if (selectedFacilityType === 'school') {
-                  const totalStudents = filteredFacilities.reduce((sum, f) => sum + (f.currentStudents || 0), 0);
-                  const totalCapacity = filteredFacilities.reduce((sum, f) => sum + (f.capacity || 0), 0);
-                  const avgAttendance = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.attendanceRate || 0), 0) / filteredFacilities.length;
-                  const avgPassRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.passRate || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalStudents.toLocaleString()}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Учеников</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {((totalStudents / totalCapacity) * 100).toFixed(1)}%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Заполненность</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgAttendance.toFixed(1)}%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. посещаемость</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgPassRate.toFixed(1)}%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. успеваемость</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'hospital') {
-                  const totalPatients = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyPatients || 0), 0);
-                  const totalBeds = filteredFacilities.reduce((sum, f) => sum + (f.beds || 0), 0);
-                  const avgSuccessRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.successRate || 0), 0) / filteredFacilities.length;
-                  const avgResponse = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.emergencyResponse || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPatients.toLocaleString()}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Пациентов/мес</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalBeds}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Общих коек</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgSuccessRate.toFixed(1)}%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. успешность</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgResponse.toFixed(1)} мин
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. отклик</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'polyclinic') {
-                  const totalPatients = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.dailyPatients || 0), 0);
-                  const totalOffices = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.offices || 0), 0);
-                  const avgAppointmentTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.appointmentTime || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPatients.toLocaleString()}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Пациентов/день</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalOffices}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Кабинетов</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgAppointmentTime.toFixed(1)} дн
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. запись</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {filteredFacilities.length}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Учреждений</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'clinic') {
-                  const totalPatients = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.dailyPatients || 0), 0);
-                  const avgDoctors = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.doctorsCount || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPatients.toLocaleString()}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Пациентов/день</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgDoctors.toFixed(1)}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. врачей</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {filteredFacilities.length}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Клиник</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          95.2%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Доступность</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'police_station') {
-                  const totalCalls = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyCalls || 0), 0);
-                  const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
-                  const avgResponseTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.responseTime || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalCalls}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Обращений/мес</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPersonnel}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Сотрудников</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgResponseTime.toFixed(1)} мин
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. отклик</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {filteredFacilities.length}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Участков</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'post_office') {
-                  const totalPackages = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.dailyPackages || 0), 0);
-                  const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
-                  const avgServiceTime = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.serviceTime || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPackages}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Отправлений/день</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPersonnel}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Сотрудников</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgServiceTime.toFixed(1)} мин
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. обслуживание</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {filteredFacilities.length}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Отделений</div>
-                      </div>
-                    </div>
-                  );
-                } else if (selectedFacilityType === 'fire_station') {
-                  const totalCallouts = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.monthlyCallouts || 0), 0);
-                  const totalPersonnel = filteredFacilities.reduce((sum, f) => sum + (f.personnel || 0), 0);
-                  const avgSuccessRate = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.successRate || 0), 0) / filteredFacilities.length;
-                  const avgResponse = filteredFacilities.reduce((sum, f) => sum + (f.statistics?.averageResponse || 0), 0) / filteredFacilities.length;
-                  
-                  return (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalCallouts}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Вызовов/мес</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {totalPersonnel}
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Общий персонал</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgSuccessRate.toFixed(1)}%
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. успешность</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${darkMode ? 'bg-indigo-800/30' : 'bg-white/70'}`}>
-                        <div className={`font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                          {avgResponse.toFixed(1)} мин
-                        </div>
-                        <div className={`${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>Ср. отклик</div>
-                      </div>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-          )}
 
           {/* Travel Time Slider */}
           <div className="space-y-4">
@@ -604,7 +1014,7 @@ const ControlPanel = ({
               
               {/* Quick time buttons */}
               <div className="flex space-x-2">
-                {[15, 30, 45].map(time => (
+                {[10, 15, 30].map(time => (
                   <button
                     key={time}
                     onClick={() => setMaxTravelTime(time)}

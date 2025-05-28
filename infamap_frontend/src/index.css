@@ -1092,4 +1092,101 @@ input:focus-visible {
   .btn-secondary {
     border: 2px solid #000;
   }
+}
+
+/* Стили для системы уведомлений */
+.notification-panel {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-item {
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  transform: translateX(-2px);
+}
+
+.notification-badge {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.notification-settings {
+  backdrop-filter: blur(8px);
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .notification-panel {
+    width: 100vw;
+    height: 100vh;
+    right: 0;
+    top: 0;
+    border-radius: 0;
+  }
+}
+
+/* Анимации для статистики */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+/* Улучшенные переходы */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 } 

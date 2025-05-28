@@ -5,8 +5,25 @@ import ResultsPanel from './components/ResultsPanel';
 import ReportModal from './components/ReportModal';
 import FacilityDetailsModal from './components/FacilityDetailsModal';
 import NotificationToast from './components/NotificationToast';
+import NotificationSystem from './components/NotificationSystem';
 import { apiService } from './services/apiService';
-import { Settings, Info, Bell, Wifi, WifiOff, PanelLeftClose, PanelLeftOpen, Eye, EyeOff, Moon, Sun } from 'lucide-react';
+import { 
+  MapPin, 
+  Settings, 
+  BarChart3, 
+  Bell, 
+  Info, 
+  PanelLeftOpen, 
+  PanelLeftClose, 
+  Download,
+  HelpCircle,
+  Wifi,
+  WifiOff,
+  Eye,
+  EyeOff,
+  Moon,
+  Sun
+} from 'lucide-react';
 
 // Функция генерации тестовых рекомендаций
 const generateTestRecommendations = (facilityType) => {
@@ -191,7 +208,7 @@ function App() {
   const [recommendations, setRecommendations] = useState([]);
   const [populationData, setPopulationData] = useState([]);
   const [selectedFacilityType, setSelectedFacilityType] = useState('all');
-  const [maxTravelTime, setMaxTravelTime] = useState(30);
+  const [maxTravelTime, setMaxTravelTime] = useState(15);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -216,6 +233,44 @@ function App() {
   
   // Состояние темной темы
   const [darkMode, setDarkMode] = useState(false);
+
+  // Состояние для туториала
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  // Шаги туториала
+  const tutorialSteps = [
+    {
+      target: '.control-panel',
+      title: 'Панель управления',
+      content: 'Здесь вы можете выбрать тип учреждений и настроить параметры анализа',
+      position: 'right'
+    },
+    {
+      target: '.facility-type-select',
+      title: 'Выбор типа учреждений',
+      content: 'Выберите тип учреждений для анализа: школы, больницы, пожарные станции и др.',
+      position: 'bottom'
+    },
+    {
+      target: '.travel-time-slider',
+      title: 'Время доезда',
+      content: 'Установите максимальное время доезда для анализа доступности',
+      position: 'bottom'
+    },
+    {
+      target: '.analyze-button',
+      title: 'Запуск анализа',
+      content: 'Нажмите эту кнопку для запуска анализа и получения рекомендаций',
+      position: 'top'
+    },
+    {
+      target: '.map-container',
+      title: 'Интерактивная карта',
+      content: 'На карте отображаются учреждения, рекомендации и зоны покрытия',
+      position: 'left'
+    }
+  ];
 
   // Отслеживание онлайн статуса
   useEffect(() => {
@@ -1006,8 +1061,291 @@ function App() {
     setShowFacilityDetails(true);
   };
 
+  // Функция для создания уведомлений с действиями
+  const addNotificationWithAction = (type, title, message, action = null) => {
+    const notification = {
+      id: Date.now() + Math.random(),
+      type,
+      title,
+      message,
+      action,
+      timestamp: new Date()
+    };
+    setNotifications(prev => [...prev, notification]);
+    
+    // Автоматическое удаление через 10 секунд (или 15 для уведомлений с действиями)
+    setTimeout(() => {
+      removeNotification(notification.id);
+    }, action ? 15000 : 10000);
+  };
+
+  // Улучшенная функция экспорта с уведомлением
+  const handleExportData = () => {
+    try {
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        parameters: {
+          facilityType: selectedFacilityType,
+          maxTravelTime,
+          showCoverageZones,
+          activeLayers
+        },
+        statistics: {
+          totalFacilities: facilities.length,
+          recommendations: recommendations.length,
+          populationCovered: populationData?.totalPopulation || 0
+        },
+        recommendations,
+        totalFacilities: facilities.length,
+        version: "1.0"
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inframap-analysis-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      addNotificationWithAction(
+        'success',
+        'Данные экспортированы',
+        `Файл анализа сохранен (${recommendations.length} рекомендаций)`,
+        {
+          label: 'Открыть папку',
+          onClick: () => {
+            // В реальном приложении можно добавить функцию открытия папки загрузок
+            addNotification('info', 'Информация', 'Файл сохранен в папку загрузок');
+          }
+        }
+      );
+    } catch (error) {
+      addNotification('error', 'Ошибка экспорта', 'Не удалось экспортировать данные');
+    }
+  };
+
+  // Функция автосохранения настроек
+  const saveUserSettings = () => {
+    const settings = {
+      darkMode,
+      selectedFacilityType,
+      maxTravelTime,
+      showCoverageZones,
+      activeLayers,
+      lastSaved: new Date().toISOString()
+    };
+    
+    try {
+      localStorage.setItem('inframap_settings', JSON.stringify(settings));
+      addNotification('success', 'Настройки сохранены', 'Ваши предпочтения автоматически сохранены');
+    } catch (error) {
+      console.error('Ошибка сохранения настроек:', error);
+    }
+  };
+
+  // Функция загрузки настроек
+  const loadUserSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('inframap_settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        setDarkMode(settings.darkMode || false);
+        setSelectedFacilityType(settings.selectedFacilityType || 'all');
+        setMaxTravelTime(settings.maxTravelTime || 15);
+        setShowCoverageZones(settings.showCoverageZones || false);
+        setActiveLayers(settings.activeLayers || ['facilities']);
+        
+        addNotificationWithAction(
+          'info',
+          'Настройки восстановлены',
+          'Загружены ваши сохраненные предпочтения',
+          {
+            label: 'Сбросить',
+            onClick: () => {
+              localStorage.removeItem('inframap_settings');
+              window.location.reload();
+            }
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки настроек:', error);
+    }
+  };
+
+  // Автосохранение настроек при изменении
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveUserSettings();
+    }, 2000); // Сохранение через 2 секунды после изменения
+
+    return () => clearTimeout(timeoutId);
+  }, [darkMode, selectedFacilityType, maxTravelTime, showCoverageZones, activeLayers]);
+
+  // Загрузка настроек при запуске
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  // Функция анализа производительности
+  const analyzePerformance = () => {
+    const performanceData = {
+      facilitiesCount: facilities.length,
+      recommendationsCount: recommendations.length,
+      renderTime: Date.now() - lastUpdateTime.getTime(),
+      memoryUsage: performance.memory ? {
+        used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+      } : null,
+      timestamp: new Date().toISOString()
+    };
+
+    // Проверка производительности
+    if (performanceData.facilitiesCount > 1000) {
+      addNotificationWithAction(
+        'warning',
+        'Большое количество объектов',
+        `Отображается ${performanceData.facilitiesCount} объектов. Это может замедлить работу.`,
+        {
+          label: 'Оптимизировать',
+          onClick: () => {
+            setSelectedFacilityType('hospital'); // Фильтр для уменьшения нагрузки
+            addNotification('info', 'Оптимизация', 'Применен фильтр для улучшения производительности');
+          }
+        }
+      );
+    }
+
+    return performanceData;
+  };
+
+  // Мониторинг производительности каждые 30 секунд
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (facilities.length > 0) {
+        analyzePerformance();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [facilities.length, recommendations.length]);
+
+  // Улучшенная функция генерации отчета
+  const generateDetailedReport = () => {
+    const reportData = {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        version: '2.0',
+        parameters: {
+          facilityType: selectedFacilityType,
+          maxTravelTime,
+          showCoverageZones,
+          activeLayers
+        }
+      },
+      summary: {
+        totalFacilities: facilities.length,
+        totalRecommendations: recommendations.length,
+        populationCovered: populationData?.totalPopulation || 0,
+        averageDistance: recommendations.length > 0 
+          ? (recommendations.reduce((sum, rec) => sum + (rec.distance || 0), 0) / recommendations.length).toFixed(2)
+          : 0
+      },
+      analysis: {
+        facilityDistribution: facilities.reduce((acc, facility) => {
+          acc[facility.type] = (acc[facility.type] || 0) + 1;
+          return acc;
+        }, {}),
+        coverageAnalysis: {
+          wellCovered: recommendations.filter(r => r.priority === 'low').length,
+          moderatelyCovered: recommendations.filter(r => r.priority === 'medium').length,
+          poorlyCovered: recommendations.filter(r => r.priority === 'high').length
+        },
+        performanceMetrics: analyzePerformance()
+      },
+      recommendations: recommendations.map(rec => ({
+        ...rec,
+        estimatedCost: rec.priority === 'high' ? 5000000 : rec.priority === 'medium' ? 3000000 : 1000000,
+        estimatedTimeframe: rec.priority === 'high' ? '6-12 месяцев' : rec.priority === 'medium' ? '12-18 месяцев' : '18-24 месяца'
+      })),
+      actionPlan: {
+        immediate: recommendations.filter(r => r.priority === 'high').slice(0, 3),
+        shortTerm: recommendations.filter(r => r.priority === 'medium').slice(0, 5),
+        longTerm: recommendations.filter(r => r.priority === 'low').slice(0, 10)
+      }
+    };
+
+    setReportData(reportData);
+    setShowReportModal(true);
+
+    addNotificationWithAction(
+      'success',
+      'Отчет сгенерирован',
+      `Создан детальный отчет с ${reportData.summary.totalRecommendations} рекомендациями`,
+      {
+        label: 'Экспортировать PDF',
+        onClick: () => {
+          // В реальном приложении здесь была бы функция экспорта в PDF
+          addNotification('info', 'Экспорт PDF', 'Функция экспорта в PDF будет добавлена в следующей версии');
+        }
+      }
+    );
+  };
+
+  // Функция запуска туториала
+  const startTutorial = () => {
+    setShowTutorial(true);
+    setTutorialStep(0);
+    addNotification('info', 'Туториал запущен', 'Следуйте подсказкам для изучения интерфейса');
+  };
+
+  // Функция завершения туториала
+  const completeTutorial = () => {
+    setShowTutorial(false);
+    setTutorialStep(0);
+    localStorage.setItem('inframap_tutorial_completed', 'true');
+    addNotificationWithAction(
+      'success',
+      'Туториал завершен',
+      'Теперь вы знаете основы работы с InfraMap!',
+      {
+        label: 'Начать анализ',
+        onClick: () => {
+          if (facilities.length > 0) {
+            handleGenerateRecommendations();
+          }
+        }
+      }
+    );
+  };
+
+  // Проверка, нужно ли показать туториал новому пользователю
+  useEffect(() => {
+    const tutorialCompleted = localStorage.getItem('inframap_tutorial_completed');
+    if (!tutorialCompleted && facilities.length > 0) {
+      setTimeout(() => {
+        addNotificationWithAction(
+          'info',
+          'Добро пожаловать в InfraMap!',
+          'Хотите пройти краткий туториал по основным функциям?',
+          {
+            label: 'Начать туториал',
+            onClick: startTutorial
+          }
+        );
+      }, 3000);
+    }
+  }, [facilities.length]);
+
   return (
-    <div className={`h-screen flex flex-col transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`h-screen flex flex-col transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900 dark' : 'bg-gray-50'
+    }`}>
       {/* Header */}
               <header className={`shadow-sm border-b px-6 py-4 transition-colors duration-300 ${
           darkMode 
@@ -1049,13 +1387,15 @@ function App() {
             </button>
 
             {/* Управление панелями */}
-            <div className="flex items-center space-x-1 border border-gray-300 rounded-lg p-1">
+            <div className={`flex items-center space-x-1 border rounded-lg p-1 transition-colors duration-300 ${
+              darkMode ? 'border-gray-600' : 'border-gray-300'
+            }`}>
               <button
                 onClick={() => setShowControlPanel(!showControlPanel)}
                 className={`p-2 rounded transition-colors ${
                   showControlPanel 
                     ? 'bg-primary-100 text-primary-600' 
-                    : 'text-gray-400 hover:text-gray-600'
+                    : `${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`
                 }`}
                 title="Панель управления"
               >
@@ -1066,7 +1406,7 @@ function App() {
                 className={`p-2 rounded transition-colors ${
                   showResultsPanel && statistics
                     ? 'bg-primary-100 text-primary-600' 
-                    : 'text-gray-400 hover:text-gray-600'
+                    : `${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`
                 }`}
                 title="Панель результатов"
                 disabled={!statistics}
@@ -1086,24 +1426,37 @@ function App() {
             </div>
 
             {/* Уведомления */}
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <Bell className="w-5 h-5" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-              )}
+            <NotificationSystem darkMode={darkMode} />
+
+            {/* Экспорт данных */}
+            <button
+              onClick={handleExportData}
+              className={`p-2 transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title="Экспортировать данные"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
+            {/* Помощь и туториал */}
+            <button
+              onClick={startTutorial}
+              className={`p-2 transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title="Помощь и туториал"
+            >
+              <HelpCircle className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => {
                 console.log('Кнопка отчёта нажата. Statistics:', !!statistics);
                 if (statistics) {
-                  setShowReport(true);
+                  generateDetailedReport();
                 } else {
-                  addNotification({
-                    type: 'warning',
-                    title: 'Отчёт недоступен',
-                    message: 'Сначала выполните анализ для получения рекомендаций'
-                  });
+                  addNotification('warning', 'Отчёт недоступен', 'Сначала выполните анализ для получения рекомендаций');
                 }
               }}
               className={`flex items-center space-x-2 transition-all duration-200 ${
@@ -1114,7 +1467,7 @@ function App() {
               disabled={!statistics}
             >
               <Info className="w-4 h-4" />
-              <span>{statistics ? 'Показать отчёт' : 'Отчёт недоступен'}</span>
+              <span>{statistics ? 'Создать отчёт' : 'Отчёт недоступен'}</span>
             </button>
           </div>
         </div>
@@ -1145,14 +1498,18 @@ function App() {
               statistics={statistics}
               recommendations={recommendations}
               darkMode={darkMode}
+              setDarkMode={setDarkMode}
             />
             
             {statistics && showResultsPanel && (
-              <div className="border-t border-gray-200">
+              <div className={`border-t transition-colors duration-300 ${
+                darkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
                 <ResultsPanel
                   statistics={statistics}
                   recommendations={recommendations}
                   facilityType={selectedFacilityType}
+                  darkMode={darkMode}
                 />
               </div>
             )}
@@ -1170,6 +1527,7 @@ function App() {
             maxTravelTime={maxTravelTime}
             showCoverageZones={showCoverageZones}
             onShowFacilityDetails={handleShowFacilityDetails}
+            darkMode={darkMode}
           />
           
           {/* Плавающая мини-панель управления когда основная скрыта */}
@@ -1185,7 +1543,9 @@ function App() {
                 }`}>Быстрое управление</h3>
                 <button
                   onClick={() => setShowControlPanel(true)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className={`transition-colors ${
+                    darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                  }`}
                 >
                   <PanelLeftOpen className="w-4 h-4" />
                 </button>
@@ -1193,11 +1553,17 @@ function App() {
               
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600">Тип учреждения</label>
+                  <label className={`text-xs font-medium transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>Тип учреждения</label>
                   <select
                     value={selectedFacilityType}
                     onChange={(e) => setSelectedFacilityType(e.target.value)}
-                    className="w-full mt-1 text-sm border border-gray-300 rounded-lg px-2 py-1"
+                    className={`w-full mt-1 text-sm border rounded-lg px-2 py-1 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   >
                     <option value="all">Все учреждения</option>
                     <option value="school">Школы</option>
@@ -1207,7 +1573,9 @@ function App() {
                 </div>
                 
                 <div>
-                  <label className="text-xs font-medium text-gray-600">
+                  <label className={`text-xs font-medium transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
                     Время доезда: {maxTravelTime} мин
                   </label>
                   <input
@@ -1280,6 +1648,7 @@ function App() {
       <NotificationToast 
         notifications={notifications} 
         onRemove={removeNotification} 
+        darkMode={darkMode}
       />
 
       {/* Report Modal */}
@@ -1290,6 +1659,7 @@ function App() {
           statistics={statistics}
           recommendations={recommendations}
           facilityType={selectedFacilityType}
+          darkMode={darkMode}
         />
       )}
 
@@ -1300,6 +1670,7 @@ function App() {
           onClose={() => setShowFacilityDetails(false)}
           facility={selectedFacilityForDetails}
           facilityType={selectedFacilityForDetails?.type}
+          darkMode={darkMode}
         />
       )}
     </div>
