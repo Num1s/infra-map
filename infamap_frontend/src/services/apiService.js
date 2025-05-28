@@ -3,7 +3,7 @@ import axios from 'axios';
 // Определяем базовый URL в зависимости от окружения
 // В development используем proxy, в production - прямое подключение
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'http://192.168.1.93:8000/api/v1'
+  ? 'http://192.168.1.183:8000/api/v1'
   : '/api/v1'; // Используем proxy в development
 
 console.log('API Base URL:', API_BASE_URL);
@@ -287,23 +287,67 @@ export const apiService = {
   async getRecommendations(params) {
     try {
       console.log('Запрашиваем рекомендации с параметрами:', params);
-      // Попробуем получить рекомендации с API
-      try {
-        const response = await api.post('/get-recommendations/', params);
-      return response.data;
-      } catch (error) {
-        // Если эндпоинта нет, возвращаем базовые рекомендации
-        console.warn('Эндпоинт для рекомендаций не найден, используем заглушку');
-        return {
-          recommendations: [],
-          statistics: {
-            total_facilities: 0,
-            coverage_percentage: 0,
-            average_distance: 0,
-            recommendations_count: 0
-          }
-        };
+      
+      let recommendations = [];
+      let statistics = {
+        total_facilities: 0,
+        coverage_percentage: 0,
+        average_distance: 0,
+        recommendations_count: 0,
+        gap_zones_count: 0
+      };
+
+      // Если запрашиваются рекомендации для школ, получаем провальные зоны
+      if (params.facility_type === 'school') {
+        try {
+          console.log('Получаем провальные зоны для школ...');
+          const gapData = await this.getGapZones();
+          
+          recommendations = gapData.gap_recommendations || [];
+          statistics = {
+            ...statistics,
+            recommendations_count: recommendations.length,
+            gap_zones_count: gapData.total_gaps || 0,
+            total_facilities: recommendations.length,
+            coverage_percentage: Math.max(0, 100 - (gapData.total_gaps * 2)), // Примерная оценка покрытия
+            average_distance: recommendations.length > 0 
+              ? Math.round(recommendations.reduce((sum, rec) => sum + rec.distance_to_nearest, 0) / recommendations.length)
+              : 0
+          };
+          
+          console.log('Получены рекомендации по провальным зонам:', recommendations.length);
+          
+          return {
+            recommendations,
+            statistics
+          };
+        } catch (gapError) {
+          console.warn('Ошибка получения провальных зон:', gapError.message);
+          // Возвращаем пустой результат если провальные зоны недоступны
+          return {
+            recommendations: [],
+            statistics: {
+              total_facilities: 0,
+              coverage_percentage: 0,
+              average_distance: 0,
+              recommendations_count: 0,
+              gap_zones_count: 0
+            }
+          };
+        }
       }
+
+      // Для других типов учреждений пока возвращаем пустой результат
+      console.log(`Рекомендации для типа "${params.facility_type}" пока не реализованы`);
+      return {
+        recommendations: [],
+        statistics: {
+          total_facilities: 0,
+          coverage_percentage: 0,
+          average_distance: 0,
+          recommendations_count: 0
+        }
+      };
     } catch (error) {
       console.error('Ошибка получения рекомендаций:', error);
       throw new Error('Ошибка получения рекомендаций: ' + error.message);
@@ -347,6 +391,83 @@ export const apiService = {
       return response.data;
     } catch (error) {
       throw new Error('Ошибка получения аналитики');
+    }
+  },
+
+  // Получить провальные зоны школ
+  async getGapZones() {
+    try {
+      console.log('Запрашиваем координаты для новых школ с API...');
+      console.log('Полный URL:', `${API_BASE_URL}/find-gaps/`);
+      
+      const response = await api.get('/find-gaps/');
+      console.log('Ответ API успешен:', response.status);
+      console.log('Данные о новых школах по районам:', response.data);
+      
+      const districtsData = response.data;
+      
+      // Обрабатываем данные по районам
+      const gapRecommendations = [];
+      let totalSchoolsNeeded = 0;
+      let schoolCounter = 1; // Общий счетчик школ
+      
+      // Проходим по каждому району
+      Object.entries(districtsData).forEach(([districtName, districtData]) => {
+        const { new_schools_needed, new_school_coordinates } = districtData;
+        totalSchoolsNeeded += new_schools_needed;
+        
+        console.log(`Обрабатываем район: ${districtName}, нужно школ: ${new_schools_needed}`);
+        
+        // Обрабатываем координаты школ для текущего района
+        new_school_coordinates.forEach((coords, districtIndex) => {
+          const lat = parseFloat(coords.lat);
+          const lon = parseFloat(coords.lon);
+          
+          // Определяем приоритет на основе номера школы в районе
+          let priority = 'high'; // По умолчанию высокий приоритет
+          if (districtIndex % 3 === 0) priority = 'high';
+          else if (districtIndex % 3 === 1) priority = 'medium';
+          else priority = 'low';
+          
+          gapRecommendations.push({
+            id: `new_school_${schoolCounter}`,
+            coordinates: [lat, lon],
+            type: 'school_gap',
+            priority: priority,
+            reason: `Рекомендуемое место для новой школы в ${districtName}`,
+            description: `Школа ${districtIndex + 1} из ${new_schools_needed} в ${districtName} (№${schoolCounter} общего плана)`,
+            distance_to_nearest: 1000 + (districtIndex * 100), // Примерное расстояние
+            estimated_students: Math.max(250, Math.round(300 + (districtIndex * 50))), // Примерная оценка студентов
+            recommendation_type: 'gap_zone',
+            facility_type: 'school',
+            school_number: schoolCounter,
+            total_needed: totalSchoolsNeeded, // Будет обновлено после обработки всех районов
+            district: districtName,
+            district_school_number: districtIndex + 1,
+            district_schools_needed: new_schools_needed
+          });
+          
+          schoolCounter++;
+        });
+      });
+      
+      // Обновляем общее количество для всех рекомендаций
+      gapRecommendations.forEach(rec => {
+        rec.total_needed = totalSchoolsNeeded;
+      });
+      
+      console.log('Обработанные рекомендации для новых школ:', gapRecommendations);
+      console.log(`Всего районов: ${Object.keys(districtsData).length}, всего школ: ${totalSchoolsNeeded}`);
+      
+      return {
+        total_gaps: totalSchoolsNeeded,
+        gap_recommendations: gapRecommendations,
+        districts_data: districtsData, // Сохраняем исходные данные по районам
+        districts_count: Object.keys(districtsData).length
+      };
+    } catch (error) {
+      console.error('Ошибка загрузки данных о новых школах:', error);
+      throw new Error(`Ошибка загрузки данных о новых школах: ${error.message}`);
     }
   }
 }; 

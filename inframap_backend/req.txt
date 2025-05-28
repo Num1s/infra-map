@@ -15,6 +15,7 @@ djangorestframework==3.16.0
 fiona==1.10.1
 fonttools==4.58.0
 geopandas==1.0.1
+geopy==2.4.1
 idna==3.10
 kiwisolver==1.4.8
 matplotlib==3.10.3
@@ -33,6 +34,7 @@ pytz==2025.2
 rasterio==1.4.3
 rasterstats==0.20.0
 requests==2.32.3
+scipy==1.14.1
 shapely==2.1.1
 simplejson==3.20.1
 six==1.17.0

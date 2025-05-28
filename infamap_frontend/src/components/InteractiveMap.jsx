@@ -501,6 +501,70 @@ const InteractiveMap = ({
       low: '#10b981'
     };
     
+    // Специальная иконка для провальных зон школ
+    if (recommendation.recommendation_type === 'gap_zone' || recommendation.type === 'school_gap') {
+      return L.divIcon({
+        className: 'custom-marker recommendation-marker new-school-marker',
+        html: `
+          <div style="
+            width: 55px; 
+            height: 55px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            border: 4px solid #d1fae5; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px;
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
+            position: relative;
+            animation: recommendationPulse 2s infinite, float 3s ease-in-out infinite;
+          ">
+            🏫
+            <div style="
+              position: absolute;
+              top: -10px;
+              right: -10px;
+              width: 24px;
+              height: 24px;
+              background: ${priorityColors[recommendation.priority] || '#10b981'};
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: white;
+              font-weight: bold;
+              border: 2px solid white;
+              animation: priorityBadgePulse 1.5s infinite;
+            ">
+              ✨
+            </div>
+            <div style="
+              position: absolute;
+              bottom: -12px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #10b981;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 8px;
+              font-size: 9px;
+              font-weight: bold;
+              border: 1px solid white;
+              white-space: nowrap;
+            ">
+              НОВАЯ
+            </div>
+          </div>
+        `,
+        iconSize: [55, 55],
+        iconAnchor: [27.5, 27.5],
+        popupAnchor: [0, -27.5]
+      });
+    }
+    
+    // Стандартная иконка для обычных рекомендаций
     return L.divIcon({
       className: 'custom-marker recommendation-marker',
       html: `
@@ -782,6 +846,120 @@ const InteractiveMap = ({
       low: 'Низкий'
     };
     
+    // Специальная обработка для провальных зон школ
+    if (recommendation.recommendation_type === 'gap_zone' || recommendation.type === 'school_gap') {
+      return `
+        <div style="padding: 0; min-width: 320px; max-width: 400px; font-family: system-ui, sans-serif;">
+          <!-- Заголовок для новых школ -->
+          <div style="padding: 12px; background: linear-gradient(135deg, #10b981, #059669); color: white; margin: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🏫</span>
+                <div>
+                  <h3 style="margin: 0; font-size: 16px; font-weight: bold; line-height: 1.2;">
+                    Новая школа №${recommendation.school_number || ''}
+                  </h3>
+                  <div style="font-size: 11px; opacity: 0.9;">${recommendation.district || 'Район не указан'}</div>
+                </div>
+              </div>
+              <div style="background: ${priorityColors[recommendation.priority || 'high']}; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">
+                ${priorityLabels[recommendation.priority || 'high']}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Основная информация для новой школы -->
+          <div style="padding: 12px; background: white;">
+            <div style="margin-bottom: 12px; padding: 8px; background: #ecfdf5; border-radius: 6px; border-left: 3px solid #10b981;">
+              <div style="font-size: 11px; color: #059669; font-weight: 600; margin-bottom: 3px;">РАЙОН И ПОЗИЦИЯ:</div>
+              <div style="font-size: 12px; color: #047857; font-weight: 600; line-height: 1.3;">
+                ${recommendation.description || `Школа ${recommendation.district_school_number || 1} из ${recommendation.district_schools_needed || 1} в ${recommendation.district || 'районе'}`}
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+              <div style="background: #fef3c7; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #92400e; font-weight: 600;">ПРИОРИТЕТ В РАЙОНЕ</div>
+                <div style="font-size: 14px; color: #78350f; font-weight: bold;">
+                  ${recommendation.district_school_number || 1} из ${recommendation.district_schools_needed || 1}
+                </div>
+                <div style="font-size: 9px; color: #451a03;">школ района</div>
+              </div>
+              <div style="background: #ecfdf5; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #059669; font-weight: 600;">ОБЩИЙ ПЛАН</div>
+                <div style="font-size: 14px; color: #047857; font-weight: bold;">
+                  ${recommendation.school_number || 1} из ${recommendation.total_needed || 1}
+                </div>
+                <div style="font-size: 9px; color: #065f46;">всего школ</div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+              <div style="background: #ddd6fe; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #6d28d9; font-weight: 600;">ОХВАТ</div>
+                <div style="font-size: 14px; color: #5b21b6; font-weight: bold;">
+                  ${recommendation.estimated_students || 300}
+                </div>
+                <div style="font-size: 9px; color: #4c1d95;">учеников</div>
+              </div>
+              <div style="background: #fed7d7; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #c53030; font-weight: 600;">РАЙОН</div>
+                <div style="font-size: 11px; color: #9c2929; font-weight: bold; line-height: 1;">
+                  ${recommendation.district ? recommendation.district.replace(' район', '') : 'Не указан'}
+                </div>
+                <div style="font-size: 9px; color: #742a2a;">район</div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">ОБОСНОВАНИЕ:</div>
+              <div style="font-size: 12px; color: #374151; line-height: 1.4;">
+                Анализ показал необходимость строительства школы в ${recommendation.district || 'данном районе'} для обеспечения оптимального покрытия образовательными услугами
+              </div>
+            </div>
+            
+            <!-- Дополнительная информация -->
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+              <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 6px;">📊 АНАЛИЗ ЛОКАЦИИ:</div>
+              
+              <div style="display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px;">
+                <div style="background: #ecfdf5; padding: 4px; border-radius: 3px;">
+                  <div style="font-size: 9px; color: #059669; font-weight: 600;">СТАТУС ПРОЕКТА</div>
+                  <div style="font-size: 10px; color: #047857;">
+                    ${recommendation.priority === 'high' ? 'Первоочередная - срочная реализация' :
+                      recommendation.priority === 'medium' ? 'Среднесрочная - планирование в течение 2-3 лет' :
+                      'Долгосрочная - перспективное развитие'}
+                  </div>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 8px;">
+                <div style="font-size: 10px; color: #059669; font-weight: 600; margin-bottom: 4px;">✅ ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:</div>
+                <div style="font-size: 10px; color: #047857; line-height: 1.3;">
+                  • Улучшение доступности образования в ${recommendation.district || 'районе'}<br>
+                  • Снижение нагрузки на существующие школы<br>
+                  • Развитие инфраструктуры района
+                </div>
+              </div>
+            </div>
+            
+            <!-- Кнопка действия -->
+            <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+              <button 
+                onclick="console.log('Анализ рекомендации новой школы в районе:', '${recommendation.district}', 'школа №${recommendation.school_number}');"
+                style="width: 100%; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.opacity='0.8'"
+                onmouseout="this.style.opacity='1'"
+              >
+                📋 План строительства в ${recommendation.district ? recommendation.district.replace(' район', '') : 'районе'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Стандартная обработка для обычных рекомендаций
     return `
       <div style="padding: 0; min-width: 300px; max-width: 380px; font-family: system-ui, sans-serif;">
         <!-- Заголовок -->
