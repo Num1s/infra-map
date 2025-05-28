@@ -4,14 +4,11 @@ import ControlPanel from './components/ControlPanel';
 import ResultsPanel from './components/ResultsPanel';
 import ReportModal from './components/ReportModal';
 import FacilityDetailsModal from './components/FacilityDetailsModal';
-import NotificationToast from './components/NotificationToast';
-import NotificationSystem from './components/NotificationSystem';
 import { apiService } from './services/apiService';
 import { 
   MapPin, 
   Settings, 
   BarChart3, 
-  Bell, 
   Info, 
   PanelLeftOpen, 
   PanelLeftClose, 
@@ -63,17 +60,14 @@ function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
 
-  // State для системы уведомлений
-  const [notifications, setNotifications] = useState([]);
-
   // Отслеживание статуса подключения
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -112,11 +106,6 @@ function App() {
       
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
-      addNotification(
-        'error',
-        'Ошибка загрузки',
-        'Не удалось загрузить данные с сервера: ' + error.message
-      );
     } finally {
       setIsLoading(false);
       console.log('Загрузка данных завершена');
@@ -126,12 +115,6 @@ function App() {
   const handleGenerateRecommendations = async () => {
     try {
       setIsLoading(true);
-      
-      addNotificationWithAction(
-        'info',
-        'Анализ запущен',
-        'Генерируем рекомендации на основе текущих параметров...'
-      );
       
       const params = {
         facility_type: selectedFacilityType,
@@ -146,29 +129,8 @@ function App() {
       setActiveLayers(prev => ({ ...prev, recommendations: true }));
       setLastUpdateTime(new Date());
       
-      addNotificationWithAction(
-        'success',
-        'Анализ завершен',
-        `Найдено ${result.recommendations?.length || 0} оптимальных мест для размещения`,
-        {
-          label: 'Посмотреть отчет',
-          onClick: () => setShowReportModal(true)
-        }
-      );
-      
     } catch (error) {
       console.error('Ошибка генерации рекомендаций:', error);
-      
-      addNotificationWithAction(
-        'error',
-        'Ошибка анализа',
-        'Не удалось получить рекомендации с сервера. Проверьте подключение и попробуйте снова.',
-        {
-          label: 'Повторить',
-          onClick: () => handleGenerateRecommendations()
-        }
-      );
-      
     } finally {
       setIsLoading(false);
     }
@@ -179,12 +141,6 @@ function App() {
     setShowRecommendations(false);
     setStatistics(null);
     setActiveLayers(prev => ({ ...prev, recommendations: false }));
-    
-    addNotification(
-      'info',
-      'Карта очищена',
-      'Все рекомендации удалены с карты'
-    );
   };
 
   const handleLayerToggle = (layerName) => {
@@ -201,34 +157,6 @@ function App() {
   const handleShowFacilityDetails = (facility) => {
     setSelectedFacilityForDetails(facility);
     setShowFacilityDetails(true);
-  };
-
-  // Функция для создания уведомлений с действиями
-  const addNotificationWithAction = (type, title, message, action = null) => {
-    const notification = {
-      id: Date.now() + Math.random(),
-      type,
-      title,
-      message,
-      action,
-      timestamp: new Date()
-    };
-    setNotifications(prev => [...prev, notification]);
-    
-    // Автоматическое удаление через 10 секунд (или 15 для уведомлений с действиями)
-    setTimeout(() => {
-      removeNotification(notification.id);
-    }, action ? 15000 : 10000);
-  };
-
-  // Простая функция для создания уведомлений без действий
-  const addNotification = (type, title, message) => {
-    addNotificationWithAction(type, title, message, null);
-  };
-
-  // Функция удаления уведомлений
-  const removeNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   // Улучшенная функция экспорта с уведомлением
@@ -263,20 +191,8 @@ function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      addNotificationWithAction(
-        'success',
-        'Данные экспортированы',
-        `Файл анализа сохранен (${recommendations.length} рекомендаций)`,
-        {
-          label: 'Открыть папку',
-          onClick: () => {
-            // В реальном приложении можно добавить функцию открытия папки загрузок
-            addNotification('info', 'Информация', 'Файл сохранен в папку загрузок');
-          }
-        }
-      );
     } catch (error) {
-      addNotification('error', 'Ошибка экспорта', 'Не удалось экспортировать данные');
+      console.error('Ошибка экспорта:', error);
     }
   };
 
@@ -293,7 +209,6 @@ function App() {
     
     try {
       localStorage.setItem('inframap_settings', JSON.stringify(settings));
-      addNotification('success', 'Настройки сохранены', 'Ваши предпочтения автоматически сохранены');
     } catch (error) {
       console.error('Ошибка сохранения настроек:', error);
     }
@@ -314,19 +229,6 @@ function App() {
           population: true,
           recommendations: false
         });
-        
-        addNotificationWithAction(
-          'info',
-          'Настройки восстановлены',
-          'Загружены ваши сохраненные предпочтения',
-          {
-            label: 'Сбросить',
-            onClick: () => {
-              localStorage.removeItem('inframap_settings');
-              window.location.reload();
-            }
-          }
-        );
       }
     } catch (error) {
       console.error('Ошибка загрузки настроек:', error);
@@ -363,18 +265,7 @@ function App() {
 
     // Проверка производительности
     if (performanceData.facilitiesCount > 1000) {
-      addNotificationWithAction(
-        'warning',
-        'Большое количество объектов',
-        `Отображается ${performanceData.facilitiesCount} объектов. Это может замедлить работу.`,
-        {
-          label: 'Оптимизировать',
-          onClick: () => {
-            setSelectedFacilityType('hospital'); // Фильтр для уменьшения нагрузки
-            addNotification('info', 'Оптимизация', 'Применен фильтр для улучшения производительности');
-          }
-        }
-      );
+      console.warn('Большое количество объектов. Это может замедлить работу.');
     }
 
     return performanceData;
@@ -438,26 +329,12 @@ function App() {
 
     setReportData(reportData);
     setShowReportModal(true);
-
-    addNotificationWithAction(
-      'success',
-      'Отчет сгенерирован',
-      `Создан детальный отчет с ${reportData.summary.totalRecommendations} рекомендациями`,
-      {
-        label: 'Экспортировать PDF',
-        onClick: () => {
-          // В реальном приложении здесь была бы функция экспорта в PDF
-          addNotification('info', 'Экспорт PDF', 'Функция экспорта в PDF будет добавлена в следующей версии');
-        }
-      }
-    );
   };
 
   // Функция запуска туториала
   const startTutorial = () => {
     setShowTutorial(true);
     setTutorialStep(0);
-    addNotification('info', 'Туториал запущен', 'Следуйте подсказкам для изучения интерфейса');
   };
 
   // Функция завершения туториала
@@ -465,19 +342,6 @@ function App() {
     setShowTutorial(false);
     setTutorialStep(0);
     localStorage.setItem('inframap_tutorial_completed', 'true');
-    addNotificationWithAction(
-      'success',
-      'Туториал завершен',
-      'Теперь вы знаете основы работы с InfraMap!',
-      {
-        label: 'Начать анализ',
-        onClick: () => {
-          if (facilities.length > 0) {
-            handleGenerateRecommendations();
-          }
-        }
-      }
-    );
   };
 
   // Проверка, нужно ли показать туториал новому пользователю
@@ -485,15 +349,7 @@ function App() {
     const tutorialCompleted = localStorage.getItem('inframap_tutorial_completed');
     if (!tutorialCompleted && facilities.length > 0) {
       setTimeout(() => {
-        addNotificationWithAction(
-          'info',
-          'Добро пожаловать в InfraMap!',
-          'Хотите пройти краткий туториал по основным функциям?',
-          {
-            label: 'Начать туториал',
-            onClick: startTutorial
-          }
-        );
+        startTutorial();
       }, 3000);
     }
   }, [facilities.length]);
@@ -581,9 +437,6 @@ function App() {
               <span>{isOnline ? 'Онлайн' : 'Офлайн'}</span>
             </div>
 
-            {/* Уведомления */}
-            <NotificationSystem darkMode={darkMode} />
-
             {/* Экспорт данных */}
             <button
               onClick={handleExportData}
@@ -612,7 +465,7 @@ function App() {
                 if (statistics) {
                   generateDetailedReport();
                 } else {
-                  addNotification('warning', 'Отчёт недоступен', 'Сначала выполните анализ для получения рекомендаций');
+                  console.warn('Отчёт недоступен');
                 }
               }}
               className={`flex items-center space-x-2 transition-all duration-200 ${
@@ -800,12 +653,20 @@ function App() {
         </div>
       </div>
 
-      {/* Notifications */}
-      <NotificationToast 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-        darkMode={darkMode}
-      />
+      {/* Loading Indicator */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className={`p-6 rounded-lg shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="flex items-center space-x-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className={`${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                <div className="font-semibold">Загрузка данных...</div>
+                <div className="text-sm opacity-75">Получение информации об учреждениях</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Report Modal */}
       {showReportModal && (
