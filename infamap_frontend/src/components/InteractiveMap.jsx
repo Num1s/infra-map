@@ -614,7 +614,7 @@ const InteractiveMap = ({
           <div style="background: #f0f9ff; padding: 8px; border-radius: 6px; text-align: center;">
             <div style="font-size: 12px; color: #0369a1; font-weight: 600;">ПОСЕЩАЕМОСТЬ</div>
             <div style="font-size: 16px; color: #0c4a6e; font-weight: bold;">${facility.statistics?.attendanceRate || '-'}%</div>
-          </div>
+            </div>
           <div style="background: #f0fdf4; padding: 8px; border-radius: 6px; text-align: center;">
             <div style="font-size: 12px; color: #059669; font-weight: 600;">УСПЕВАЕМОСТЬ</div>
             <div style="font-size: 16px; color: #047857; font-weight: bold;">${facility.statistics?.passRate || '-'}%</div>
@@ -636,6 +636,55 @@ const InteractiveMap = ({
             ${facility.languages.map(language => 
               `<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${language}</span>`
             ).join('')}
+          </div>
+        </div>
+        ` : ''}
+      `;
+    } else if (facility.type === 'hospital' || facility.type === 'clinic' || facility.type === 'polyclinic') {
+      // Статистика для медицинских учреждений
+      const isHospital = facility.type === 'hospital';
+      const typeColors = {
+        hospital: { bg: '#fef2f2', text: '#dc2626', accent: '#991b1b' },
+        clinic: { bg: '#f3e8ff', text: '#7c3aed', accent: '#5b21b6' },
+        polyclinic: { bg: '#eff6ff', text: '#2563eb', accent: '#1d4ed8' }
+      };
+      const colors = typeColors[facility.type] || typeColors.clinic;
+      
+      specificStats = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0;">
+          ${isHospital ? `
+          <div style="background: ${colors.bg}; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 12px; color: ${colors.text}; font-weight: 600;">КОЙКИ</div>
+            <div style="font-size: 16px; color: ${colors.accent}; font-weight: bold;">${facility.beds || '-'}</div>
+            </div>
+          ` : `
+          <div style="background: ${colors.bg}; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 12px; color: ${colors.text}; font-weight: 600;">ПАЦИЕНТЫ/ДЕНЬ</div>
+            <div style="font-size: 16px; color: ${colors.accent}; font-weight: bold;">${facility.currentLoad || '-'}</div>
+          </div>
+          `}
+          <div style="background: #f0fdf4; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 12px; color: #059669; font-weight: 600;">ВРАЧЕЙ</div>
+            <div style="font-size: 16px; color: #047857; font-weight: bold;">${facility.doctors || '-'}</div>
+          </div>
+          <div style="background: #fffbeb; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 12px; color: #d97706; font-weight: 600;">ЗАГРУЗКА</div>
+            <div style="font-size: 16px; color: #b45309; font-weight: bold;">${facility.currentLoad ? Math.round((facility.currentLoad / facility.capacity) * 100) : '-'}%</div>
+          </div>
+          <div style="background: #fdf2f8; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 12px; color: #be185d; font-weight: 600;">РЕЖИМ</div>
+            <div style="font-size: 13px; color: #9d174d; font-weight: bold; line-height: 1;">${facility.workingHours || 'Круглосуточно'}</div>
+          </div>
+        </div>
+        
+        ${facility.departments && Array.isArray(facility.departments) && facility.departments.length > 0 ? `
+        <div style="margin: 8px 0;">
+          <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">ОТДЕЛЕНИЯ:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            ${facility.departments.slice(0, 4).map(dept => 
+              `<span style="background: ${colors.bg}; color: ${colors.accent}; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${dept}</span>`
+            ).join('')}
+            ${facility.departments.length > 4 ? `<span style="background: #f3f4f6; color: #6b7280; padding: 2px 8px; border-radius: 12px; font-size: 11px;">+${facility.departments.length - 4}</span>` : ''}
           </div>
         </div>
         ` : ''}
@@ -836,7 +885,7 @@ const InteractiveMap = ({
   // Создание модального окна подробного анализа
   const createDetailedAnalysisModal = (analysis) => {
     const config = getFacilityIconConfig(analysis.type || 'school');
-    
+
     return `
       <div style="
         background: white;
@@ -857,7 +906,7 @@ const InteractiveMap = ({
           overflow: hidden;
         ">
           <div style="position: relative; z-index: 2;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
               <div>
                 <h2 style="margin: 0; font-size: 20px; font-weight: bold;">
                   ${config.symbol} Детальный анализ размещения
@@ -865,24 +914,24 @@ const InteractiveMap = ({
                 <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">
                   Комплексная оценка локации для ${config.name.toLowerCase()}
                 </p>
-              </div>
-              <button 
-                onclick="this.closest('[style*=\"position: fixed\"]').remove()"
-                style="
-                  background: rgba(255, 255, 255, 0.2);
-                  border: none;
-                  color: white;
-                  width: 32px;
-                  height: 32px;
+            </div>
+            <button 
+              onclick="this.closest('[style*=\"position: fixed\"]').remove()"
+              style="
+                background: rgba(255, 255, 255, 0.2);
+                border: none;
+                color: white;
+                width: 32px;
+                height: 32px;
                   border-radius: 8px;
-                  cursor: pointer;
-                  font-size: 18px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 "
               >×</button>
-            </div>
+          </div>
           </div>
           <div style="
             position: absolute;
@@ -894,7 +943,7 @@ const InteractiveMap = ({
             border-radius: 50%;
           "></div>
         </div>
-        
+
         <div style="padding: 24px;">
           <!-- Краткая сводка -->
           <div style="
@@ -936,14 +985,14 @@ const InteractiveMap = ({
               </div>
             </div>
           </div>
-          
+
           <!-- Основные разделы анализа -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
             <!-- Демографический анализ -->
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;">
               <h3 style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px; display: flex; align-items: center;">
-                👥 Демографический анализ
-              </h3>
+              👥 Демографический анализ
+            </h3>
               
               <div style="space-y: 12px;">
                 <div style="margin-bottom: 12px;">
@@ -956,10 +1005,10 @@ const InteractiveMap = ({
                   <div style="font-size: 14px; color: #374151; font-weight: 600; margin-bottom: 8px;">
                     Целевая аудитория: ${analysis.target_audience || 'Общая популяция'}
                   </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            
+              
             <!-- Инфраструктурный анализ -->
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;">
               <h3 style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px; display: flex; align-items: center;">
@@ -981,7 +1030,7 @@ const InteractiveMap = ({
               </div>
             </div>
           </div>
-          
+
           <!-- Итоговые рекомендации -->
           <div style="background: #f8fafc; border-radius: 12px; padding: 20px; border-left: 4px solid #10b981;">
             <h3 style="margin: 0 0 12px 0; color: #1f2937; font-size: 16px;">
