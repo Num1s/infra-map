@@ -11,7 +11,7 @@ try {
 } catch (error) {
   console.warn('Не удалось загрузить access-config.json, используем настройки по умолчанию');
   accessConfig = {
-    allowedIPs: ['127.0.0.1', '::1', '192.168.1.*'],
+    allowedIPs: ['127.0.0.1', '::1', '192.168.1.89', '192.168.1.93', '192.168.1.97'],
     settings: { enableIPCheck: true, logAccess: true, blockUnknownIPs: true }
   };
 }
@@ -191,8 +191,19 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://192.168.1.93:8000',
         changeOrigin: true,
+        secure: false,
+        logLevel: 'debug',
+        onError: (err, req, res) => {
+          console.log('Proxy Error:', err);
+        },
+        onProxyReq: (proxyReq, req, res) => {
+          console.log('Proxy Request:', req.method, req.url);
+        },
+        onProxyRes: (proxyRes, req, res) => {
+          console.log('Proxy Response:', proxyRes.statusCode, req.url);
+        }
       }
     }
   }

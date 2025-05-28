@@ -24,86 +24,19 @@ const NotificationSystem = ({ darkMode = false }) => {
     realtime: true
   });
 
-  // Симуляция уведомлений
-  useEffect(() => {
-    const generateNotification = () => {
-      const notificationTypes = [
-        {
-          id: Date.now(),
-          type: 'critical',
-          title: 'Критическая перегрузка',
-          message: 'Больница №3 превысила лимит пациентов на 150%',
-          facility: 'Больница №3',
-          location: 'ул. Ленина, 45',
-          timestamp: new Date(),
-          action: 'redirect_patients',
-          icon: AlertTriangle,
-          color: 'red'
-        },
-        {
-          id: Date.now() + 1,
-          type: 'warning',
-          title: 'Превышение времени ожидания',
-          message: 'Поликлиника "Здоровье" - время ожидания 45 мин',
-          facility: 'Поликлиника "Здоровье"',
-          location: 'пр. Мира, 12',
-          timestamp: new Date(),
-          action: 'optimize_schedule',
-          icon: Clock,
-          color: 'orange'
-        },
-        {
-          id: Date.now() + 2,
-          type: 'info',
-          title: 'Плановое обслуживание',
-          message: 'Почтовое отделение №5 закрыто на техобслуживание',
-          facility: 'Почтовое отделение №5',
-          location: 'ул. Гагарина, 78',
-          timestamp: new Date(),
-          action: 'find_alternative',
-          icon: Info,
-          color: 'blue'
-        },
-        {
-          id: Date.now() + 3,
-          type: 'analytics',
-          title: 'Обнаружена тенденция',
-          message: 'Рост обращений в школы района на 23% за месяц',
-          facility: 'Школы Центрального района',
-          location: 'Центральный район',
-          timestamp: new Date(),
-          action: 'analyze_trend',
-          icon: TrendingUp,
-          color: 'purple'
-        },
-        {
-          id: Date.now() + 4,
-          type: 'success',
-          title: 'Оптимизация завершена',
-          message: 'Маршрут пожарной службы оптимизирован, время отклика сокращено на 15%',
-          facility: 'Пожарная часть №2',
-          location: 'ул. Советская, 23',
-          timestamp: new Date(),
-          action: 'view_results',
-          icon: CheckCircle,
-          color: 'green'
-        }
-      ];
+  // Функция добавления уведомления
+  const addNotification = (notification) => {
+    setNotifications(prev => [notification, ...prev.slice(0, 9)]);
+  };
 
-      const randomNotification = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
-      
-      // Проверяем настройки уведомлений
-      if (notificationSettings[randomNotification.type] || notificationSettings.realtime) {
-        setNotifications(prev => [randomNotification, ...prev.slice(0, 9)]);
-      }
-    };
-
-    const interval = setInterval(generateNotification, 8000);
-    return () => clearInterval(interval);
-  }, [notificationSettings]);
-
+  // Функция удаления уведомления
   const removeNotification = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // Функция очистки всех уведомлений
+  const clearAllNotifications = () => {
+    setNotifications([]);
   };
 
   const handleAction = (notification) => {

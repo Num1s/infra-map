@@ -1,14 +1,29 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
-const USE_MOCK_DATA = true; // Флаг для использования заглушек
+// Определяем базовый URL в зависимости от окружения
+// В development используем proxy, в production - прямое подключение
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'http://192.168.1.93:8000/api/v1'
+  : '/api/v1'; // Используем proxy в development
+
+console.log('API Base URL:', API_BASE_URL);
+console.log('Environment:', process.env.NODE_ENV);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  // Добавляем поддержку CORS
+  withCredentials: false,
+  // Следуем редиректам
+  maxRedirects: 5,
+  // Принудительно используем HTTP для предотвращения HTTPS проблем
+  validateStatus: function (status) {
+    return status >= 200 && status < 400; // Принимаем 3xx коды как успешные
+  }
 });
 
 // Интерцептор для обработки ошибок
@@ -16,328 +31,213 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error);
+    if (error.code === 'ERR_NETWORK') {
+      console.error('Ошибка сети: Проверьте подключение к серверу', API_BASE_URL);
+    }
     return Promise.reject(error);
   }
 );
 
-// Симуляция задержки API
-const simulateDelay = (ms = 1000) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Заглушки данных
-const mockData = {
-  facilities: [
-    // Школы
-    {
-      id: 1,
-      type: 'school',
-      name: 'Гимназия №1 им. А.С. Пушкина',
-      coordinates: [42.8746, 74.5698],
-      address: 'ул. Чуй, 123',
-      capacity: 1200,
-      established: 1965,
-      contact: '+996 312 123456'
-    },
-    {
-      id: 2,
-      type: 'school',
-      name: 'СОШ №45',
-      coordinates: [42.8856, 74.5898],
-      address: 'ул. Токтогула, 89',
-      capacity: 800,
-      established: 1978,
-      contact: '+996 312 789012'
-    },
-    {
-      id: 3,
-      type: 'school',
-      name: 'Лицей "Илим"',
-      coordinates: [42.8546, 74.5398],
-      address: 'микрорайон Джал, 15',
-      capacity: 950,
-      established: 1995,
-      contact: '+996 312 345678'
-    },
-    {
-      id: 4,
-      type: 'school',
-      name: 'СОШ №62',
-      coordinates: [42.8646, 74.6098],
-      address: 'ул. Ахунбаева, 201',
-      capacity: 600,
-      established: 1982,
-      contact: '+996 312 567890'
-    },
-    // Больницы
-    {
-      id: 5,
-      type: 'hospital',
-      name: 'Национальный госпиталь',
-      coordinates: [42.8656, 74.5789],
-      address: 'ул. Киевская, 45',
-      beds: 400,
-      specialties: ['Кардиология', 'Хирургия', 'Неврология'],
-      contact: '+996 312 654321'
-    },
-    {
-      id: 6,
-      type: 'hospital',
-      name: 'Городская больница №3',
-      coordinates: [42.8756, 74.5489],
-      address: 'проспект Манаса, 156',
-      beds: 250,
-      specialties: ['Терапия', 'Педиатрия', 'Гинекология'],
-      contact: '+996 312 987654'
-    },
-    {
-      id: 7,
-      type: 'hospital',
-      name: 'Клиника "Эне-Сай"',
-      coordinates: [42.8456, 74.5989],
-      address: 'ул. Исанова, 42',
-      beds: 120,
-      specialties: ['Родильное отделение', 'Педиатрия'],
-      contact: '+996 312 111222'
-    },
-    // Пожарные станции
-    {
-      id: 8,
-      type: 'fire_station',
-      name: 'ПЧ №1 МЧС КР',
-      coordinates: [42.8796, 74.5598],
-      address: 'ул. Манаса, 67',
-      vehicles: 8,
-      personnel: 45,
-      contact: '+996 312 333444'
-    },
-    {
-      id: 9,
-      type: 'fire_station',
-      name: 'ПЧ №3 "Ала-Тоо"',
-      coordinates: [42.8696, 74.6198],
-      address: 'ул. Горького, 234',
-      vehicles: 6,
-      personnel: 32,
-      contact: '+996 312 555666'
-    },
-    {
-      id: 10,
-      type: 'fire_station',
-      name: 'ПЧ №5 "Свердловский"',
-      coordinates: [42.8596, 74.5298],
-      address: 'ул. Фрунзе, 178',
-      vehicles: 5,
-      personnel: 28,
-      contact: '+996 312 777888'
-    }
-  ],
-
-  populationHeatmap: [
-    // Центр города (высокая плотность)
-    [42.8746, 74.5698, 0.9],
-    [42.8756, 74.5708, 0.85],
-    [42.8766, 74.5718, 0.88],
-    [42.8736, 74.5688, 0.82],
-    
-    // Жилые районы
-    [42.8656, 74.5789, 0.7],
-    [42.8666, 74.5799, 0.68],
-    [42.8646, 74.5779, 0.72],
-    [42.8676, 74.5809, 0.65],
-    
-    // Микрорайоны
-    [42.8856, 74.5898, 0.75],
-    [42.8866, 74.5908, 0.73],
-    [42.8846, 74.5888, 0.77],
-    [42.8876, 74.5918, 0.71],
-    
-    // Спальные районы
-    [42.8546, 74.5398, 0.6],
-    [42.8556, 74.5408, 0.58],
-    [42.8536, 74.5388, 0.62],
-    [42.8566, 74.5418, 0.55],
-    
-    // Окраины
-    [42.8796, 74.5598, 0.5],
-    [42.8806, 74.5608, 0.48],
-    [42.8786, 74.5588, 0.52],
-    [42.8816, 74.5618, 0.45],
-    
-    // Промышленные зоны
-    [42.8696, 74.6198, 0.4],
-    [42.8596, 74.5298, 0.42],
-    [42.8496, 74.5998, 0.38],
-    
-    // Новые районы
-    [42.8946, 74.5798, 0.65],
-    [42.8446, 74.5498, 0.55],
-    [42.8896, 74.6098, 0.48]
-  ],
-
-  generateRecommendations: (facilityType) => {
-    const recommendations = {
-      school: [
-        {
-          id: 'rec_school_1',
-          type: 'school',
-          coordinates: [42.8900, 74.5800],
-          score: 0.89,
-          estimated_coverage: 12500,
-          reason: 'Высокая плотность детского населения',
-          priority: 'high'
-        },
-        {
-          id: 'rec_school_2',
-          type: 'school',
-          coordinates: [42.8400, 74.5300],
-          score: 0.76,
-          estimated_coverage: 8900,
-          reason: 'Недостаток школ в районе',
-          priority: 'medium'
-        }
-      ],
-      hospital: [
-        {
-          id: 'rec_hospital_1',
-          type: 'hospital',
-          coordinates: [42.8850, 74.5750],
-          score: 0.92,
-          estimated_coverage: 18500,
-          reason: 'Критический недостаток медучреждений',
-          priority: 'high'
-        }
-      ],
-      fire_station: [
-        {
-          id: 'rec_fire_1',
-          type: 'fire_station',
-          coordinates: [42.8750, 74.6050],
-          score: 0.85,
-          estimated_coverage: 22000,
-          reason: 'Превышение времени доезда',
-          priority: 'high'
-        }
-      ]
-    };
-
-    if (facilityType === 'all') {
-      return [
-        ...recommendations.school.slice(0, 1),
-        ...recommendations.hospital.slice(0, 1),
-        ...recommendations.fire_station.slice(0, 1)
-      ];
-    }
-
-    return recommendations[facilityType] || [];
-  },
-
-  generateStatistics: (facilityType, recommendations) => {
-    const baseStats = {
-      school: {
-        new_points_count: recommendations.length,
-        coverage_improvement: 22.5,
-        people_covered: 28900,
-        current_coverage: 67.8,
-        target_coverage: 90.3,
-        investment_needed: 45000000
-      },
-      hospital: {
-        new_points_count: recommendations.length,
-        coverage_improvement: 31.2,
-        people_covered: 45200,
-        current_coverage: 58.1,
-        target_coverage: 89.3,
-        investment_needed: 120000000
-      },
-      fire_station: {
-        new_points_count: recommendations.length,
-        coverage_improvement: 18.7,
-        people_covered: 67500,
-        current_coverage: 74.2,
-        target_coverage: 92.9,
-        investment_needed: 35000000
-      }
-    };
-
-    return baseStats[facilityType] || baseStats.school;
-  }
-};
-
 export const apiService = {
-  // Получить список учреждений
+  // Получить список учреждений (школ)
   async getFacilities(type = null) {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(800);
-      let facilities = mockData.facilities;
-      if (type && type !== 'all') {
-        facilities = facilities.filter(f => f.type === type);
-      }
-      return facilities;
-    }
-
     try {
-      const params = type ? { type } : {};
-      const response = await api.get('/objects', { params });
-      return response.data;
+      console.log('Запрашиваем школы с API...');
+      console.log('Полный URL:', `${API_BASE_URL}/get-schools/`);
+      
+      const response = await api.get('/get-schools/');
+      console.log('Ответ API успешен:', response.status);
+      console.log('Заголовки ответа:', response.headers);
+      console.log('Данные от API:', response.data);
+      
+      // Проверяем структуру ответа - может быть объект с total_count и данными
+      let schoolsData = response.data;
+      
+      console.log('Тип данных от API:', typeof schoolsData);
+      console.log('schoolsData:', schoolsData);
+      console.log('schoolsData.districts:', schoolsData?.districts);
+      console.log('Тип districts:', typeof schoolsData?.districts);
+      
+      // Если данные в объекте с полями total_count и districts/schools
+      if (schoolsData && typeof schoolsData === 'object' && !Array.isArray(schoolsData)) {
+        if (schoolsData.schools) {
+          schoolsData = schoolsData.schools;
+        } else if (schoolsData.districts && typeof schoolsData.districts === 'object') {
+          // Если данные организованы по районам - это наш случай
+          console.log('Обрабатываем districts...');
+          const districtsData = schoolsData.districts; // Сохраняем ссылку на districts
+          schoolsData = []; // Теперь безопасно переопределяем schoolsData
+          
+          try {
+            Object.entries(districtsData).forEach(([districtName, district]) => {
+              console.log('Обрабатываем район:', districtName, district);
+              if (district && district.coordinates && Array.isArray(district.coordinates)) {
+                // Каждая школа в координатах имеет lat, lon, name
+                district.coordinates.forEach((school, schoolIndex) => {
+                  console.log(`Школа ${schoolIndex} в районе ${districtName}:`, school);
+                  schoolsData.push({
+                    ...school,
+                    district: districtName, // Добавляем название района
+                    district_count: district.count // Добавляем количество школ в районе
+                  });
+                });
+              } else {
+                console.warn('Район не содержит coordinates или coordinates не массив:', districtName, district);
+              }
+            });
+          } catch (error) {
+            console.error('Ошибка при обработке districts:', error);
+            console.error('districtsData:', districtsData);
+          }
+        } else if (schoolsData.data && Array.isArray(schoolsData.data)) {
+          schoolsData = schoolsData.data;
+        }
+      }
+      
+      if (!Array.isArray(schoolsData)) {
+        console.error('API вернуло не массив после обработки:', typeof schoolsData, schoolsData);
+        console.log('Попробуем использовать пустой массив для начала');
+        schoolsData = [];
+      }
+      
+      // Преобразуем данные в нужный формат для карты
+      const schools = schoolsData.map((school, index) => {
+        console.log(`Обрабатываем школу ${index}:`, school);
+        
+        // Определяем координаты
+        let coordinates = null;
+        if (school.coordinates) {
+          coordinates = school.coordinates;
+          console.log(`Координаты из school.coordinates:`, coordinates);
+        } else if (school.lat !== undefined && school.lon !== undefined) {
+          // Проверяем, что это валидные числа
+          const lat = parseFloat(school.lat);
+          const lon = parseFloat(school.lon);
+          
+          if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+            coordinates = [lat, lon];
+            console.log(`Координаты из lat/lon: lat=${school.lat}, lon=${school.lon} -> [${coordinates}]`);
+          } else {
+            console.warn(`Некорректные lat/lon для школы ${index}: lat=${school.lat}, lon=${school.lon}`);
+          }
+        } else if (school.latitude !== undefined && school.longitude !== undefined) {
+          const lat = parseFloat(school.latitude);
+          const lon = parseFloat(school.longitude);
+          
+          if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+            coordinates = [lat, lon];
+            console.log(`Координаты из latitude/longitude:`, coordinates);
+          } else {
+            console.warn(`Некорректные latitude/longitude для школы ${index}: lat=${school.latitude}, lon=${school.longitude}`);
+          }
+        } else if (school.location && school.location.coordinates) {
+          coordinates = school.location.coordinates;
+          console.log(`Координаты из location.coordinates:`, coordinates);
+        }
+        
+        // Если координаты не найдены или некорректные, используем координаты Бишкека
+        if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
+          coordinates = [42.8746, 74.5698]; // Центр Бишкека
+          console.warn(`Нет валидных координат для школы ${index} (${school.name}), используем центр Бишкека:`, coordinates);
+        }
+        
+        // Финальная проверка координат
+        console.log(`Финальные координаты для школы ${index} (${school.name}):`, coordinates);
+        
+        const processedSchool = {
+          id: school.id || school.school_id || `school_${index}`,
+          name: school.name || school.school_name || school.title || school.facility_name || 'Школа без названия',
+          type: 'school',
+          coordinates: coordinates,
+          address: school.address || school.location || school.addr || school.full_address || '',
+          capacity: school.capacity || school.student_count || school.max_students || school.total_capacity || 500,
+          currentLoad: school.current_load || school.current_students || school.students || school.enrolled || 0,
+          rating: school.rating || school.score || 4.0,
+          // Дополнительные поля если есть
+          district: school.district || school.region || school.area || '',
+          phone: school.phone || school.telephone || school.contact_phone || '',
+          website: school.website || school.url || school.site || '',
+          established: school.established || school.founded || school.year_opened || null,
+          languages: school.languages || school.study_languages || [],
+          specializations: school.specializations || school.programs || school.subjects || []
+        };
+        
+        console.log(`Обработанная школа ${index}:`, {
+          id: processedSchool.id,
+          name: processedSchool.name,
+          coordinates: processedSchool.coordinates,
+          district: processedSchool.district
+        });
+        
+        return processedSchool;
+      });
+      
+      console.log(`Обработано школ: ${schools.length}`);
+      console.log('Обработанные школы:', schools.slice(0, 3)); // Показываем первые 3 для проверки
+      return schools;
     } catch (error) {
-      throw new Error('Ошибка загрузки учреждений');
+      console.error('Детали ошибки загрузки школ:');
+      console.error('- Тип ошибки:', error.constructor.name);
+      console.error('- Сообщение:', error.message);
+      console.error('- Код ответа:', error.response?.status);
+      console.error('- Данные ответа:', error.response?.data);
+      console.error('- URL запроса:', error.config?.url);
+      console.error('- Полная ошибка:', error);
+      
+      throw new Error(`Ошибка загрузки учреждений: ${error.message}`);
     }
   },
 
-  // Получить данные для тепловой карты населения
+  // Получить данные тепловой карты населения
   async getPopulationHeatmap() {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(600);
-      return mockData.populationHeatmap;
-    }
-
     try {
-      const response = await api.get('/population_heatmap');
-      return response.data;
+      console.log('Запрашиваем данные населения...');
+      // Попробуем получить данные с API, если такой эндпоинт есть
+      try {
+        const response = await api.get('/get-population-data/');
+        return response.data;
+      } catch (error) {
+        // Если эндпоинта нет, возвращаем пустой массив или базовые данные
+        console.warn('Эндпоинт для данных населения не найден, используем заглушку');
+        return [];
+      }
     } catch (error) {
-      throw new Error('Ошибка загрузки данных о населении');
+      console.error('Ошибка загрузки данных населения:', error);
+      return []; // Возвращаем пустой массив если ошибка
     }
   },
 
   // Получить рекомендации по размещению
   async getRecommendations(params) {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(1500); // Имитируем более долгий расчет
-      const recommendations = mockData.generateRecommendations(params.facility_type);
-      const statistics = mockData.generateStatistics(params.facility_type, recommendations);
-      
-      return {
-        recommendations,
-        statistics,
-        analysis_time: '1.2s',
-        algorithm_version: '2.1.4'
-      };
-    }
-
     try {
-      const response = await api.post('/recommendations', params);
-      return response.data;
+      console.log('Запрашиваем рекомендации с параметрами:', params);
+      // Попробуем получить рекомендации с API
+      try {
+        const response = await api.post('/get-recommendations/', params);
+        return response.data;
+      } catch (error) {
+        // Если эндпоинта нет, возвращаем базовые рекомендации
+        console.warn('Эндпоинт для рекомендаций не найден, используем заглушку');
+        return {
+          recommendations: [],
+          statistics: {
+            total_facilities: 0,
+            coverage_percentage: 0,
+            average_distance: 0,
+            recommendations_count: 0
+          }
+        };
+      }
     } catch (error) {
-      throw new Error('Ошибка генерации рекомендаций');
+      console.error('Ошибка получения рекомендаций:', error);
+      throw new Error('Ошибка получения рекомендаций: ' + error.message);
     }
   },
 
   // Получить статистику покрытия
   async getCoverageStats(facilityType, travelTime) {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(500);
-      return {
-        current_coverage: 68.5,
-        uncovered_population: 89500,
-        average_travel_time: 18.3,
-        max_travel_time: travelTime,
-        facilities_count: mockData.facilities.filter(f => 
-          facilityType === 'all' || f.type === facilityType
-        ).length
-      };
-    }
-
     try {
-      const response = await api.get('/coverage_stats', {
+      const response = await api.get('/coverage_stats/', {
         params: {
           facility_type: facilityType,
           max_travel_time: travelTime
@@ -351,20 +251,8 @@ export const apiService = {
 
   // Экспорт рекомендаций
   async exportRecommendations(format = 'csv', data) {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(800);
-      // Возвращаем заглушку для экспорта
-      const csvContent = `ID,Type,Coordinates,Score,Coverage\n${
-        data.map(item => 
-          `${item.id},${item.type},"${item.coordinates.join(', ')}",${item.score},${item.estimated_coverage}`
-        ).join('\n')
-      }`;
-      
-      return new Blob([csvContent], { type: 'text/csv' });
-    }
-
     try {
-      const response = await api.post('/export', {
+      const response = await api.post('/export/', {
         format,
         data
       }, {
@@ -376,34 +264,10 @@ export const apiService = {
     }
   },
 
-  // Получить дополнительную аналитику
+  // Получить аналитику
   async getAnalytics(facilityType) {
-    if (USE_MOCK_DATA) {
-      await simulateDelay(700);
-      return {
-        demographic_analysis: {
-          age_groups: {
-            children: 23.4,
-            adults: 62.1,
-            elderly: 14.5
-          },
-          population_growth: 2.3
-        },
-        transport_analysis: {
-          road_density: 'high',
-          public_transport_coverage: 78.5,
-          traffic_congestion: 'moderate'
-        },
-        economic_factors: {
-          investment_priority: facilityType === 'hospital' ? 'high' : 'medium',
-          maintenance_cost: facilityType === 'school' ? 'low' : 'medium',
-          social_impact: 'high'
-        }
-      };
-    }
-
     try {
-      const response = await api.get(`/analytics/${facilityType}`);
+      const response = await api.get(`/analytics/${facilityType}/`);
       return response.data;
     } catch (error) {
       throw new Error('Ошибка получения аналитики');
