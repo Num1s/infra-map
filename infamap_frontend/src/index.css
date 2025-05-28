@@ -1187,4 +1187,34 @@ input:focus-visible {
 .gap-zone-low {
   background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
   border-color: #ddd6fe !important;
+  animation: gapZonePulse 3s ease-in-out infinite;
+}
+
+/* Анимации для маркеров районов */
+@keyframes districtPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.district-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.district-marker div {
+  animation: districtPulse 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.district-marker:hover div {
+  transform: scale(1.1) !important;
+  animation-play-state: paused;
 } 

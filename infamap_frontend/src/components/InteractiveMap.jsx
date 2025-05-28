@@ -75,6 +75,15 @@ const InteractiveMap = ({
   onShowFacilityDetails,
   darkMode = false
 }) => {
+  // Логирование props для диагностики
+  console.log('🗺️ INTERACTIVEMAP PROPS:');
+  console.log('  - facilities.length:', facilities?.length || 0);
+  console.log('  - recommendations.length:', recommendations?.length || 0);
+  console.log('  - populationData.length:', populationData?.length || 0);
+  console.log('  - selectedFacilityType:', selectedFacilityType);
+  console.log('  - activeLayers:', activeLayers);
+  console.log('  - showCoverageZones:', showCoverageZones);
+  
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const layersRef = useRef({
@@ -82,7 +91,8 @@ const InteractiveMap = ({
     recommendations: null,
     heatmap: null,
     coverage: null,
-    individualCoverage: null
+    individualCoverage: null,
+    districts: null
   });
   
   // Состояние для индивидуального показа радиуса
@@ -220,20 +230,33 @@ const InteractiveMap = ({
 
   // Обновление слоя учреждений
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    console.log('🏢 ОБНОВЛЕНИЕ СЛОЯ УЧРЕЖДЕНИЙ:');
+    console.log('  - mapInstanceRef.current:', !!mapInstanceRef.current);
+    console.log('  - facilities.length:', facilities.length);
+    console.log('  - activeLayers.facilities:', activeLayers.facilities);
+    console.log('  - selectedFacilityType:', selectedFacilityType);
+    
+    if (!mapInstanceRef.current) {
+      console.log('❌ Карта не инициализирована, пропускаем');
+      return;
+    }
 
     // Удаляем предыдущие слои
     if (layersRef.current.facilities) {
+      console.log('🗑️ Удаляем предыдущий слой facilities');
       mapInstanceRef.current.removeLayer(layersRef.current.facilities);
     }
     if (layersRef.current.coverage) {
+      console.log('🗑️ Удаляем предыдущий слой coverage');
       mapInstanceRef.current.removeLayer(layersRef.current.coverage);
     }
     if (layersRef.current.individualCoverage) {
+      console.log('🗑️ Удаляем предыдущий слой individualCoverage');
       mapInstanceRef.current.removeLayer(layersRef.current.individualCoverage);
     }
 
     if (activeLayers.facilities && facilities.length > 0) {
+      console.log('✅ Создаем новые слои для учреждений');
       const facilitiesLayer = L.layerGroup();
       const coverageLayer = L.layerGroup();
 
@@ -241,14 +264,28 @@ const InteractiveMap = ({
       const filteredFacilities = facilities.filter(facility => 
         selectedFacilityType === 'all' || facility.type === selectedFacilityType
       );
+      
+      console.log('📊 ФИЛЬТРАЦИЯ УЧРЕЖДЕНИЙ:');
+      console.log('  - Всего учреждений:', facilities.length);
+      console.log('  - После фильтрации:', filteredFacilities.length);
+      console.log('  - Фильтр по типу:', selectedFacilityType);
 
-      filteredFacilities.forEach(facility => {
+      filteredFacilities.forEach((facility, index) => {
+        console.log(`🏢 Обрабатываем учреждение ${index + 1}:`, {
+          id: facility.id,
+          name: facility.name,
+          type: facility.type,
+          coordinates: facility.coordinates
+        });
+        
         try {
           // Проверяем валидность координат
           if (!facility.coordinates || !Array.isArray(facility.coordinates) || facility.coordinates.length < 2) {
-            console.warn('Некорректные координаты для учреждения:', facility.name);
+            console.warn(`❌ Некорректные координаты для учреждения: ${facility.name}`, facility.coordinates);
             return;
           }
+
+          console.log(`✅ Координаты валидны: [${facility.coordinates[0]}, ${facility.coordinates[1]}]`);
 
           // Создаем маркер учреждения
           const icon = createFacilityIcon(facility.type);
@@ -274,36 +311,59 @@ const InteractiveMap = ({
           });
           
           facilitiesLayer.addLayer(marker);
+          console.log(`✅ Маркер добавлен в слой facilities`);
         } catch (error) {
-          console.error('Ошибка создания маркера для учреждения:', facility.name, error);
+          console.error(`❌ Ошибка создания маркера для учреждения: ${facility.name}`, error);
         }
 
         // Добавляем зону покрытия - мягкие круги
         if (showCoverageZones && activeLayers.facilities) {
-          const radius = calculateCoverageRadius(maxTravelTime, facility.type);
-          const config = getFacilityIconConfig(facility.type);
-          
-          const coverageCircle = L.circle(facility.coordinates, {
-            radius: radius,
-            fillColor: config.color,
-            fillOpacity: 0.1,
-            color: config.color,
-            weight: 1,
-            opacity: 0.3,
-            interactive: false
-          });
-          
-          coverageLayer.addLayer(coverageCircle);
+          try {
+            const radius = calculateCoverageRadius(maxTravelTime, facility.type);
+            const config = getFacilityIconConfig(facility.type);
+            
+            const coverageCircle = L.circle(facility.coordinates, {
+              radius: radius,
+              fillColor: config.color,
+              fillOpacity: 0.1,
+              color: config.color,
+              weight: 1,
+              opacity: 0.3,
+              interactive: false
+            });
+            
+            coverageLayer.addLayer(coverageCircle);
+            console.log(`✅ Круг покрытия добавлен для ${facility.name}`);
+          } catch (error) {
+            console.error(`❌ Ошибка создания зоны покрытия для: ${facility.name}`, error);
+          }
         }
       });
 
-      facilitiesLayer.addTo(mapInstanceRef.current);
-      layersRef.current.facilities = facilitiesLayer;
+      const facilitiesCount = facilitiesLayer.getLayers().length;
+      const coverageCount = coverageLayer.getLayers().length;
+      
+      console.log('📍 ИТОГИ СОЗДАНИЯ СЛОЕВ:');
+      console.log(`  - Маркеров в facilitiesLayer: ${facilitiesCount}`);
+      console.log(`  - Кругов в coverageLayer: ${coverageCount}`);
 
-      if (showCoverageZones) {
+      if (facilitiesCount > 0) {
+        facilitiesLayer.addTo(mapInstanceRef.current);
+        layersRef.current.facilities = facilitiesLayer;
+        console.log('✅ Слой facilities добавлен на карту');
+      } else {
+        console.warn('⚠️ Слой facilities пуст, не добавляем на карту');
+      }
+
+      if (showCoverageZones && coverageCount > 0) {
         coverageLayer.addTo(mapInstanceRef.current);
         layersRef.current.coverage = coverageLayer;
+        console.log('✅ Слой coverage добавлен на карту');
       }
+    } else {
+      console.log('❌ Слой facilities не отображается:');
+      console.log('  - activeLayers.facilities:', activeLayers.facilities);
+      console.log('  - facilities.length:', facilities.length);
     }
   }, [facilities, activeLayers.facilities, selectedFacilityType, maxTravelTime, showCoverageZones]);
 
@@ -405,23 +465,104 @@ const InteractiveMap = ({
       layersRef.current.recommendations = null;
     }
 
+    console.log('🔄 ОБНОВЛЕНИЕ СЛОЯ РЕКОМЕНДАЦИЙ:');
+    console.log('activeLayers.recommendations:', activeLayers.recommendations);
+    console.log('recommendations length:', recommendations?.length);
+    console.log('selectedFacilityType:', selectedFacilityType);
+    console.log('recommendations:', recommendations);
+
     if (activeLayers.recommendations && recommendations && recommendations.length > 0) {
       const recommendationsLayer = L.layerGroup();
 
-      recommendations.forEach((rec, index) => {
+      // Фильтруем рекомендации по выбранному типу учреждения
+      let filteredRecommendations = recommendations;
+      
+      console.log('🔍 ФИЛЬТРАЦИЯ РЕКОМЕНДАЦИЙ:');
+      console.log('selectedFacilityType:', selectedFacilityType);
+      console.log('Всего рекомендаций до фильтрации:', recommendations.length);
+      
+      if (selectedFacilityType !== 'all') {
+        filteredRecommendations = recommendations.filter(rec => {
+          // Проверяем разные варианты типов
+          const recType = rec.type || rec.facility_type;
+          console.log(`🔍 Рекомендация ${rec.id}:`);
+          console.log(`   - rec.type: "${rec.type}"`);
+          console.log(`   - rec.facility_type: "${rec.facility_type}"`);
+          console.log(`   - rec.recommendation_type: "${rec.recommendation_type}"`);
+          console.log(`   - selectedFacilityType: "${selectedFacilityType}"`);
+          
+          // Для рекомендаций провальных зон проверяем базовый тип
+          if (rec.recommendation_type === 'gap_zone') {
+            // Упрощенная логика для clinic_gap
+            if (selectedFacilityType === 'clinic') {
+              const isClinicGap = (rec.type === 'clinic_gap' || rec.facility_type === 'clinic');
+              console.log(`   ✅ clinic check: type="${rec.type}", facility_type="${rec.facility_type}" -> ${isClinicGap}`);
+              return isClinicGap;
+            }
+            
+            // Для школ
+            if (selectedFacilityType === 'school') {
+              const isSchoolGap = (rec.type === 'school_gap' || rec.facility_type === 'school');
+              console.log(`   ✅ school check: type="${rec.type}", facility_type="${rec.facility_type}" -> ${isSchoolGap}`);
+              return isSchoolGap;
+            }
+            
+            // Для других типов медицинских учреждений также показываем clinic_gap
+            if ((selectedFacilityType === 'hospital' || selectedFacilityType === 'polyclinic')) {
+              const isClinicRelated = (rec.type === 'clinic_gap' || rec.facility_type === 'clinic');
+              console.log(`   ✅ medical check: type="${rec.type}", facility_type="${rec.facility_type}" -> ${isClinicRelated}`);
+              return isClinicRelated;
+            }
+          }
+          
+          // Стандартная проверка типа для остальных рекомендаций
+          const matches = recType === selectedFacilityType;
+          console.log(`   ✅ standard check: "${recType}" === "${selectedFacilityType}" -> ${matches}`);
+          return matches;
+        });
+      }
+
+      console.log('📊 РЕЗУЛЬТАТ ФИЛЬТРАЦИИ:');
+      console.log('Отфильтрованных рекомендаций:', filteredRecommendations.length);
+      console.log('Детали отфильтрованных рекомендаций:', filteredRecommendations.map(r => ({
+        id: r.id,
+        type: r.type,
+        facility_type: r.facility_type,
+        coordinates: r.coordinates
+      })));
+
+      filteredRecommendations.forEach((rec, index) => {
+        console.log(`🎯 Обрабатываем рекомендацию ${index + 1}:`, rec);
+        
         if (rec.coordinates && Array.isArray(rec.coordinates) && rec.coordinates.length >= 2) {
+          console.log(`   ✅ Координаты валидны: [${rec.coordinates[0]}, ${rec.coordinates[1]}]`);
+          
           const icon = createRecommendationIcon(rec);
           const marker = L.marker(rec.coordinates, { icon })
             .bindPopup(createRecommendationPopup(rec));
           
           recommendationsLayer.addLayer(marker);
+          console.log(`   ✅ Маркер добавлен в слой`);
+        } else {
+          console.warn(`   ❌ Некорректные координаты для рекомендации:`, rec.coordinates);
         }
       });
 
-      if (recommendationsLayer.getLayers().length > 0) {
+      const layersCount = recommendationsLayer.getLayers().length;
+      console.log(`📍 Всего маркеров в слое рекомендаций: ${layersCount}`);
+
+      if (layersCount > 0) {
         recommendationsLayer.addTo(mapInstanceRef.current);
         layersRef.current.recommendations = recommendationsLayer;
+        console.log('✅ Слой рекомендаций добавлен на карту');
+      } else {
+        console.warn('⚠️ Слой рекомендаций пуст, не добавляем на карту');
       }
+    } else {
+      console.log('❌ Рекомендации не отображаются:');
+      console.log('  - activeLayers.recommendations:', activeLayers.recommendations);
+      console.log('  - recommendations exists:', !!recommendations);
+      console.log('  - recommendations.length:', recommendations?.length);
     }
   }, [recommendations, activeLayers.recommendations, selectedFacilityType]);
 
@@ -432,9 +573,10 @@ const InteractiveMap = ({
     // Удаляем предыдущий слой
     if (layersRef.current.heatmap) {
       mapInstanceRef.current.removeLayer(layersRef.current.heatmap);
+      layersRef.current.heatmap = null; // Очищаем ссылку
     }
 
-    if (activeLayers.heatmap && populationData.length > 0) {
+    if (activeLayers.population && populationData.length > 0) {
       // Увеличиваем интенсивность данных для лучшей видимости
       const enhancedData = populationData.map(([lat, lng, intensity]) => [
         lat, lng, Math.min(intensity * 2.5, 1.0) // Увеличиваем интенсивность в 2.5 раза
@@ -460,7 +602,184 @@ const InteractiveMap = ({
       heatmapLayer.addTo(mapInstanceRef.current);
       layersRef.current.heatmap = heatmapLayer;
     }
-  }, [populationData, activeLayers.heatmap]);
+  }, [populationData, activeLayers.population]);
+
+  // Обновление маркеров районов с данными популяции
+  useEffect(() => {
+    console.log('🔄 useEffect для маркеров районов:', {
+      hasMap: !!mapInstanceRef.current,
+      populationActive: activeLayers.population,
+      allActiveLayers: activeLayers
+    });
+    
+    if (!mapInstanceRef.current) return;
+
+    // Удаляем предыдущий слой районов
+    if (layersRef.current.districts) {
+      console.log('🗑️ Удаляем существующие маркеры районов через слой');
+      mapInstanceRef.current.removeLayer(layersRef.current.districts);
+      layersRef.current.districts = null; // Очищаем ссылку
+    }
+
+    // Принудительно удаляем все маркеры районов через DOM (на случай если что-то осталось)
+    setTimeout(() => {
+      const districtMarkers = document.querySelectorAll('.district-marker');
+      if (districtMarkers.length > 0) {
+        console.log(`🧹 Принудительно удаляем ${districtMarkers.length} оставшихся маркеров районов`);
+        districtMarkers.forEach(marker => {
+          const parentElement = marker.closest('.leaflet-marker-pane');
+          if (parentElement) {
+            marker.parentElement?.remove();
+          }
+        });
+      }
+    }, 100);
+
+    // Если слой населения отключен, не создаем маркеры районов
+    if (!activeLayers.population) {
+      console.log('🚫 Слой населения отключен, маркеры районов не отображаются');
+      return;
+    }
+
+    console.log('✅ Слой населения включен, создаем маркеры районов');
+
+    // Получаем данные о районах из apiService (если они доступны через глобальную переменную)
+    const addDistrictMarkers = async () => {
+      try {
+        console.log('📡 Запрашиваем данные для маркеров районов...');
+        // Запрашиваем данные популяции для получения информации о районах
+        const populationEstimate = await window.apiService?.getPopulationEstimate();
+        
+        if (populationEstimate && populationEstimate.districts) {
+          const districtsLayer = L.layerGroup();
+          
+          // Обновленные точные координаты центров районов
+          const districtCenters = {
+            'Октябрьский район': { lat: 42.8391489, lon: 74.6141665 },
+            'Октябрьский': { lat: 42.8391489, lon: 74.6141665 },
+            'Свердловский район': { lat: 42.8780000, lon: 74.6050000 },
+            'Свердловский': { lat: 42.8780000, lon: 74.6050000 },
+            'Ленинский район': { lat: 42.8590000, lon: 74.5820000 },
+            'Ленинский': { lat: 42.8590000, lon: 74.5820000 },
+            'Первомайский район': { lat: 42.8746000, lon: 74.6122000 },
+            'Первомайский': { lat: 42.8746000, lon: 74.6122000 }
+          };
+
+          populationEstimate.districts.forEach(district => {
+            const center = districtCenters[district.district];
+            if (center) {
+              const marker = L.marker([center.lat, center.lon], {
+                icon: L.divIcon({
+                  className: 'district-marker',
+                  html: `
+                    <div style="
+                      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                      color: white;
+                      padding: 8px 12px;
+                      border-radius: 12px;
+                      border: 2px solid white;
+                      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+                      text-align: center;
+                      font-size: 12px;
+                      font-weight: bold;
+                      min-width: 100px;
+                      animation: districtPulse 3s infinite;
+                    ">
+                      <div style="font-size: 14px; margin-bottom: 2px;">📊</div>
+                      <div>${district.district.replace(' район', '')}</div>
+                      <div style="font-size: 10px; opacity: 0.9;">
+                        ${(district.estimated_population / 1000).toFixed(0)}k чел.
+                      </div>
+                    </div>
+                  `,
+                  iconSize: [120, 50],
+                  iconAnchor: [60, 25]
+                })
+              }).bindPopup(`
+                <div style="padding: 0; min-width: 280px; font-family: system-ui, sans-serif;">
+                  <div style="padding: 12px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; margin: 0;">
+                    <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 20px;">🏘️</span>
+                      ${district.district}
+                    </h3>
+                  </div>
+                  
+                  <div style="padding: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                      <div style="text-align: center; padding: 12px; background: #f8fafc; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">
+                          ${district.estimated_population.toLocaleString()}
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                          👥 Население
+                        </div>
+                      </div>
+                      
+                      <div style="text-align: center; padding: 12px; background: #f8fafc; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #059669;">
+                          ${district.num_buildings}
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                          🏢 Зданий
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                      <div style="font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        📈 Плотность населения
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="flex: 1; background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                          <div style="
+                            height: 100%;
+                            background: linear-gradient(90deg, #10b981, #059669);
+                            width: ${Math.min((district.estimated_population / 600000) * 100, 100)}%;
+                            transition: width 0.3s ease;
+                          "></div>
+                        </div>
+                        <span style="font-size: 12px; color: #64748b; font-weight: 600;">
+                          ${((district.estimated_population / district.num_buildings) | 0)} чел/здание
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div style="font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                      💡 Данные основаны на анализе жилых зданий
+                    </div>
+                  </div>
+                </div>
+              `, {
+                maxWidth: 300,
+                closeButton: true,
+                autoPan: true
+              });
+
+              districtsLayer.addLayer(marker);
+            }
+          });
+
+          if (districtsLayer.getLayers().length > 0) {
+            districtsLayer.addTo(mapInstanceRef.current);
+            layersRef.current.districts = districtsLayer;
+            console.log('✅ Маркеры районов добавлены на карту');
+          }
+        }
+      } catch (error) {
+        console.warn('Не удалось загрузить данные районов для маркеров:', error.message);
+      }
+    };
+
+    // Выставляем apiService в глобальную область для доступа
+    if (!window.apiService && window.apiService !== null) {
+      import('../services/apiService').then(module => {
+        window.apiService = module.apiService;
+        addDistrictMarkers();
+      });
+    } else {
+      addDistrictMarkers();
+    }
+  }, [activeLayers.population]);
 
   // Создание иконки для учреждения
   const createFacilityIcon = (type) => {
@@ -502,7 +821,7 @@ const InteractiveMap = ({
     };
     
     // Специальная иконка для провальных зон школ
-    if (recommendation.recommendation_type === 'gap_zone' || recommendation.type === 'school_gap') {
+    if (recommendation.recommendation_type === 'gap_zone' && recommendation.type === 'school_gap') {
       return L.divIcon({
         className: 'custom-marker recommendation-marker new-school-marker',
         html: `
@@ -546,6 +865,69 @@ const InteractiveMap = ({
               left: 50%;
               transform: translateX(-50%);
               background: #10b981;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 8px;
+              font-size: 9px;
+              font-weight: bold;
+              border: 1px solid white;
+              white-space: nowrap;
+            ">
+              НОВАЯ
+            </div>
+          </div>
+        `,
+        iconSize: [55, 55],
+        iconAnchor: [27.5, 27.5],
+        popupAnchor: [0, -27.5]
+      });
+    }
+    
+    // Специальная иконка для провальных зон клиник
+    if (recommendation.recommendation_type === 'gap_zone' && recommendation.type === 'clinic_gap') {
+      return L.divIcon({
+        className: 'custom-marker recommendation-marker new-clinic-marker',
+        html: `
+          <div style="
+            width: 55px; 
+            height: 55px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #7c3aed, #5b21b6); 
+            border: 4px solid #ede9fe; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px;
+            box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+            position: relative;
+            animation: recommendationPulse 2s infinite, float 3s ease-in-out infinite;
+          ">
+            ⚕️
+            <div style="
+              position: absolute;
+              top: -10px;
+              right: -10px;
+              width: 24px;
+              height: 24px;
+              background: ${priorityColors[recommendation.priority] || '#7c3aed'};
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: white;
+              font-weight: bold;
+              border: 2px solid white;
+              animation: priorityBadgePulse 1.5s infinite;
+            ">
+              💊
+            </div>
+            <div style="
+              position: absolute;
+              bottom: -12px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #7c3aed;
               color: white;
               padding: 2px 6px;
               border-radius: 8px;
@@ -618,6 +1000,11 @@ const InteractiveMap = ({
         symbol: '🏫',
         name: 'Школа'
       },
+      school_gap: { 
+        color: '#10b981',
+        symbol: '🏫',
+        name: 'Новая школа'
+      },
       hospital: { 
         color: '#dc2626',
         symbol: '🏥',
@@ -632,6 +1019,11 @@ const InteractiveMap = ({
         color: '#7c3aed',
         symbol: '⚕️',
         name: 'Клиника'
+      },
+      clinic_gap: { 
+        color: '#7c3aed',
+        symbol: '⚕️',
+        name: 'Новая клиника'
       },
       fire_station: { 
         color: '#ea580c',
@@ -847,7 +1239,7 @@ const InteractiveMap = ({
     };
     
     // Специальная обработка для провальных зон школ
-    if (recommendation.recommendation_type === 'gap_zone' || recommendation.type === 'school_gap') {
+    if (recommendation.recommendation_type === 'gap_zone' && recommendation.type === 'school_gap') {
       return `
         <div style="padding: 0; min-width: 320px; max-width: 400px; font-family: system-ui, sans-serif;">
           <!-- Заголовок для новых школ -->
@@ -857,7 +1249,7 @@ const InteractiveMap = ({
                 <span style="font-size: 20px;">🏫</span>
                 <div>
                   <h3 style="margin: 0; font-size: 16px; font-weight: bold; line-height: 1.2;">
-                    Новая школа №${recommendation.school_number || ''}
+                    Новая школа №${recommendation.facility_number || ''}
                   </h3>
                   <div style="font-size: 11px; opacity: 0.9;">${recommendation.district || 'Район не указан'}</div>
                 </div>
@@ -873,7 +1265,7 @@ const InteractiveMap = ({
             <div style="margin-bottom: 12px; padding: 8px; background: #ecfdf5; border-radius: 6px; border-left: 3px solid #10b981;">
               <div style="font-size: 11px; color: #059669; font-weight: 600; margin-bottom: 3px;">РАЙОН И ПОЗИЦИЯ:</div>
               <div style="font-size: 12px; color: #047857; font-weight: 600; line-height: 1.3;">
-                ${recommendation.description || `Школа ${recommendation.district_school_number || 1} из ${recommendation.district_schools_needed || 1} в ${recommendation.district || 'районе'}`}
+                ${recommendation.description || `Школа ${recommendation.district_facility_number || 1} из ${recommendation.district_facilities_needed || 1} в ${recommendation.district || 'районе'}`}
               </div>
             </div>
             
@@ -881,14 +1273,14 @@ const InteractiveMap = ({
               <div style="background: #fef3c7; padding: 6px; border-radius: 4px; text-align: center;">
                 <div style="font-size: 10px; color: #92400e; font-weight: 600;">ПРИОРИТЕТ В РАЙОНЕ</div>
                 <div style="font-size: 14px; color: #78350f; font-weight: bold;">
-                  ${recommendation.district_school_number || 1} из ${recommendation.district_schools_needed || 1}
+                  ${recommendation.district_facility_number || 1} из ${recommendation.district_facilities_needed || 1}
                 </div>
                 <div style="font-size: 9px; color: #451a03;">школ района</div>
               </div>
               <div style="background: #ecfdf5; padding: 6px; border-radius: 4px; text-align: center;">
                 <div style="font-size: 10px; color: #059669; font-weight: 600;">ОБЩИЙ ПЛАН</div>
                 <div style="font-size: 14px; color: #047857; font-weight: bold;">
-                  ${recommendation.school_number || 1} из ${recommendation.total_needed || 1}
+                  ${recommendation.facility_number || 1} из ${recommendation.total_needed || 1}
                 </div>
                 <div style="font-size: 9px; color: #065f46;">всего школ</div>
               </div>
@@ -898,14 +1290,14 @@ const InteractiveMap = ({
               <div style="background: #ddd6fe; padding: 6px; border-radius: 4px; text-align: center;">
                 <div style="font-size: 10px; color: #6d28d9; font-weight: 600;">ОХВАТ</div>
                 <div style="font-size: 14px; color: #5b21b6; font-weight: bold;">
-                  ${recommendation.estimated_students || 300}
+                  ${recommendation.estimated_capacity || 300}
                 </div>
                 <div style="font-size: 9px; color: #4c1d95;">учеников</div>
               </div>
               <div style="background: #fed7d7; padding: 6px; border-radius: 4px; text-align: center;">
                 <div style="font-size: 10px; color: #c53030; font-weight: 600;">РАЙОН</div>
                 <div style="font-size: 11px; color: #9c2929; font-weight: bold; line-height: 1;">
-                  ${recommendation.district ? recommendation.district.replace(' район', '') : 'Не указан'}
+                  ${recommendation.district ? recommendation.district.replace(' район', '').replace(', город Бишкек, Киргизия', '') : 'Не указан'}
                 </div>
                 <div style="font-size: 9px; color: #742a2a;">район</div>
               </div>
@@ -946,12 +1338,125 @@ const InteractiveMap = ({
             <!-- Кнопка действия -->
             <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
               <button 
-                onclick="console.log('Анализ рекомендации новой школы в районе:', '${recommendation.district}', 'школа №${recommendation.school_number}');"
+                onclick="console.log('Анализ рекомендации новой школы в районе:', '${recommendation.district}', 'школа №${recommendation.facility_number}');"
                 style="width: 100%; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
                 onmouseover="this.style.opacity='0.8'"
                 onmouseout="this.style.opacity='1'"
               >
-                📋 План строительства в ${recommendation.district ? recommendation.district.replace(' район', '') : 'районе'}
+                📋 План строительства в ${recommendation.district ? recommendation.district.replace(' район', '').replace(', город Бишкек, Киргизия', '') : 'районе'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Специальная обработка для провальных зон клиник
+    if (recommendation.recommendation_type === 'gap_zone' && recommendation.type === 'clinic_gap') {
+      return `
+        <div style="padding: 0; min-width: 320px; max-width: 400px; font-family: system-ui, sans-serif;">
+          <!-- Заголовок для новых клиник -->
+          <div style="padding: 12px; background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; margin: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">⚕️</span>
+                <div>
+                  <h3 style="margin: 0; font-size: 16px; font-weight: bold; line-height: 1.2;">
+                    Новая клиника №${recommendation.facility_number || ''}
+                  </h3>
+                  <div style="font-size: 11px; opacity: 0.9;">${recommendation.district ? recommendation.district.replace(', город Бишкек, Киргизия', '') : 'Район не указан'}</div>
+                </div>
+              </div>
+              <div style="background: ${priorityColors[recommendation.priority || 'high']}; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">
+                ${priorityLabels[recommendation.priority || 'high']}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Основная информация для новой клиники -->
+          <div style="padding: 12px; background: white;">
+            <div style="margin-bottom: 12px; padding: 8px; background: #f3e8ff; border-radius: 6px; border-left: 3px solid #7c3aed;">
+              <div style="font-size: 11px; color: #6d28d9; font-weight: 600; margin-bottom: 3px;">РАЙОН И ПОЗИЦИЯ:</div>
+              <div style="font-size: 12px; color: #5b21b6; font-weight: 600; line-height: 1.3;">
+                ${recommendation.description || `Клиника ${recommendation.district_facility_number || 1} из ${recommendation.district_facilities_needed || 1} в ${recommendation.district || 'районе'}`}
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+              <div style="background: #fef3c7; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #92400e; font-weight: 600;">ПРИОРИТЕТ В РАЙОНЕ</div>
+                <div style="font-size: 14px; color: #78350f; font-weight: bold;">
+                  ${recommendation.district_facility_number || 1} из ${recommendation.district_facilities_needed || 1}
+                </div>
+                <div style="font-size: 9px; color: #451a03;">клиник района</div>
+              </div>
+              <div style="background: #f3e8ff; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #7c3aed; font-weight: 600;">ОБЩИЙ ПЛАН</div>
+                <div style="font-size: 14px; color: #5b21b6; font-weight: bold;">
+                  ${recommendation.facility_number || 1} из ${recommendation.total_needed || 1}
+                </div>
+                <div style="font-size: 9px; color: #4c1d95;">всего клиник</div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+              <div style="background: #ddd6fe; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #6d28d9; font-weight: 600;">ОХВАТ</div>
+                <div style="font-size: 14px; color: #5b21b6; font-weight: bold;">
+                  ${recommendation.estimated_capacity || 200}
+                </div>
+                <div style="font-size: 9px; color: #4c1d95;">пациентов/день</div>
+              </div>
+              <div style="background: #fed7d7; padding: 6px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 10px; color: #c53030; font-weight: 600;">РАЙОН</div>
+                <div style="font-size: 11px; color: #9c2929; font-weight: bold; line-height: 1;">
+                  ${recommendation.district ? recommendation.district.replace(' район', '').replace(', город Бишкек, Киргизия', '') : 'Не указан'}
+                </div>
+                <div style="font-size: 9px; color: #742a2a;">район</div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">ОБОСНОВАНИЕ:</div>
+              <div style="font-size: 12px; color: #374151; line-height: 1.4;">
+                Анализ показал необходимость размещения клиники в ${recommendation.district || 'данном районе'} для улучшения доступности медицинских услуг
+              </div>
+            </div>
+            
+            <!-- Дополнительная информация -->
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+              <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 6px;">📊 АНАЛИЗ ЛОКАЦИИ:</div>
+              
+              <div style="display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px;">
+                <div style="background: #f3e8ff; padding: 4px; border-radius: 3px;">
+                  <div style="font-size: 9px; color: #7c3aed; font-weight: 600;">СТАТУС ПРОЕКТА</div>
+                  <div style="font-size: 10px; color: #5b21b6;">
+                    ${recommendation.priority === 'high' ? 'Первоочередная - срочная реализация' :
+                      recommendation.priority === 'medium' ? 'Среднесрочная - планирование в течение 2-3 лет' :
+                      'Долгосрочная - перспективное развитие'}
+                  </div>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 8px;">
+                <div style="font-size: 10px; color: #7c3aed; font-weight: 600; margin-bottom: 4px;">✅ ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:</div>
+                <div style="font-size: 10px; color: #5b21b6; line-height: 1.3;">
+                  • Улучшение доступности медицинских услуг в ${recommendation.district || 'районе'}<br>
+                  • Снижение нагрузки на существующие медицинские учреждения<br>
+                  • Повышение качества медицинского обслуживания населения
+                </div>
+              </div>
+            </div>
+            
+            <!-- Кнопка действия -->
+            <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+              <button 
+                onclick="console.log('Анализ рекомендации новой клиники в районе:', '${recommendation.district}', 'клиника №${recommendation.facility_number}');"
+                style="width: 100%; background: #7c3aed; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.opacity='0.8'"
+                onmouseout="this.style.opacity='1'"
+              >
+                📋 План размещения в ${recommendation.district ? recommendation.district.replace(' район', '').replace(', город Бишкек, Киргизия', '') : 'районе'}
               </button>
             </div>
           </div>

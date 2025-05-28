@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 
 function App() {
+  console.log('🚀 APP COMPONENT ИНИЦИАЛИЗАЦИЯ');
+  
   // State для основных данных
   const [facilities, setFacilities] = useState([]);
   const [populationData, setPopulationData] = useState([]);
@@ -60,6 +62,12 @@ function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
 
+  console.log('📊 НАЧАЛЬНЫЕ СОСТОЯНИЯ App:');
+  console.log('  - recommendations.length:', recommendations.length);
+  console.log('  - showRecommendations:', showRecommendations);
+  console.log('  - activeLayers:', activeLayers);
+  console.log('  - selectedFacilityType:', selectedFacilityType);
+
   // Отслеживание статуса подключения
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -79,36 +87,101 @@ function App() {
     loadInitialData();
   }, []);
 
+  // Отслеживание изменений в facilities для диагностики
+  useEffect(() => {
+    console.log('🔄 FACILITIES STATE ИЗМЕНИЛСЯ:');
+    console.log('  - facilities.length:', facilities.length);
+    console.log('  - activeLayers.facilities:', activeLayers.facilities);
+    console.log('  - selectedFacilityType:', selectedFacilityType);
+    if (facilities.length > 0) {
+      console.log('  - Первые 3 учреждения:', facilities.slice(0, 3).map(f => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        coordinates: f.coordinates
+      })));
+      console.log('  - Типы учреждений:', [...new Set(facilities.map(f => f.type))]);
+    }
+  }, [facilities]);
+
+  // Отслеживание изменений в populationData для диагностики
+  useEffect(() => {
+    console.log('🔄 POPULATION DATA STATE ИЗМЕНИЛСЯ:');
+    console.log('  - populationData.length:', populationData.length);
+    console.log('  - activeLayers.population:', activeLayers.population);
+    if (populationData.length > 0) {
+      console.log('  - Первые 3 точки:', populationData.slice(0, 3));
+    }
+  }, [populationData]);
+
+  // Отслеживание изменений в activeLayers для диагностики
+  useEffect(() => {
+    console.log('🔄 ACTIVE LAYERS STATE ИЗМЕНИЛСЯ:', activeLayers);
+  }, [activeLayers]);
+
   const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      console.log('Начинаем загрузку данных...');
+      console.log('🚀 НАЧИНАЕМ ЗАГРУЗКУ ДАННЫХ...');
       
+      console.log('📡 Запрашиваем данные учреждений...');
       const facilitiesData = await apiService.getFacilities();
-      console.log('Полученные данные учреждений:', facilitiesData);
+      console.log('📊 ПОЛУЧЕННЫЕ ДАННЫЕ УЧРЕЖДЕНИЙ:');
+      console.log('  - Тип данных:', typeof facilitiesData);
+      console.log('  - Является массивом:', Array.isArray(facilitiesData));
+      console.log('  - Длина:', facilitiesData?.length);
+      console.log('  - Первые 3 элемента:', facilitiesData?.slice(0, 3));
       
       if (facilitiesData && facilitiesData.length > 0) {
+        console.log('✅ Устанавливаем данные учреждений в стейт:', facilitiesData.length);
         setFacilities(facilitiesData);
-        console.log('Установлено учреждений:', facilitiesData.length);
+        
+        // Проверяем что стейт обновился
+        setTimeout(() => {
+          console.log('🔄 Проверка стейта через 100мс - facilities.length должен быть', facilitiesData.length);
+        }, 100);
       } else {
-        console.warn('Не получено данных об учреждениях');
+        console.warn('⚠️ НЕ ПОЛУЧЕНО ДАННЫХ ОБ УЧРЕЖДЕНИЯХ');
+        console.log('   facilitiesData:', facilitiesData);
       }
       
-      const heatmapData = await apiService.getPopulationHeatmap();
-      console.log('Полученные данные населения:', heatmapData);
-      
-      if (heatmapData && heatmapData.length > 0) {
-        setPopulationData(heatmapData);
-        console.log('Установлено точек населения:', heatmapData.length);
-      } else {
-        console.warn('Не получено данных о населении');
+      // Используем новый API для получения данных популяции
+      try {
+        console.log('📡 Запрашиваем данные популяции...');
+        const populationEstimate = await apiService.getPopulationEstimate();
+        console.log('📊 ПОЛУЧЕННЫЕ ДАННЫЕ ПОПУЛЯЦИИ:');
+        console.log('  - populationEstimate:', populationEstimate);
+        console.log('  - populationEstimate.heatmapData length:', populationEstimate?.heatmapData?.length);
+        
+        if (populationEstimate && populationEstimate.heatmapData) {
+          console.log('✅ Устанавливаем данные популяции в стейт:', populationEstimate.heatmapData.length);
+          setPopulationData(populationEstimate.heatmapData);
+          console.log('📈 Общая популяция:', populationEstimate.totalPopulation);
+          console.log('🏢 Всего зданий:', populationEstimate.totalBuildings);
+        } else {
+          console.warn('⚠️ НЕ ПОЛУЧЕНО ДАННЫХ О ПОПУЛЯЦИИ');
+        }
+      } catch (populationError) {
+        console.error('❌ ОШИБКА ЗАГРУЗКИ ДАННЫХ ПОПУЛЯЦИИ:', populationError.message);
+        // Fallback на старый метод
+        try {
+          console.log('🔄 Пробуем fallback метод...');
+          const heatmapData = await apiService.getPopulationHeatmap();
+          if (heatmapData && heatmapData.length > 0) {
+            setPopulationData(heatmapData);
+            console.log('✅ Использованы fallback данные населения:', heatmapData.length);
+          }
+        } catch (fallbackError) {
+          console.error('❌ Fallback данные населения также недоступны:', fallbackError.message);
+        }
       }
       
     } catch (error) {
-      console.error('Ошибка загрузки данных:', error);
+      console.error('❌ КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ ДАННЫХ:', error);
+      console.error('   Error stack:', error.stack);
     } finally {
       setIsLoading(false);
-      console.log('Загрузка данных завершена');
+      console.log('✅ ЗАГРУЗКА ДАННЫХ ЗАВЕРШЕНА');
     }
   };
 
@@ -116,21 +189,51 @@ function App() {
     try {
       setIsLoading(true);
       
+      console.log('🚀 ЗАПУСК ГЕНЕРАЦИИ РЕКОМЕНДАЦИЙ:');
+      console.log('selectedFacilityType:', selectedFacilityType);
+      console.log('travelTime:', travelTime);
+      
+      // Дополнительная проверка: рекомендации должны генерироваться только по кнопке
+      if (!showRecommendations && activeLayers.recommendations) {
+        console.warn('⚠️ Попытка автоматической генерации рекомендаций заблокирована');
+        console.log('  - showRecommendations:', showRecommendations);
+        console.log('  - activeLayers.recommendations:', activeLayers.recommendations);
+        return;
+      }
+      
       const params = {
         facility_type: selectedFacilityType,
         max_travel_time: travelTime
       };
       
+      console.log('📋 Параметры запроса:', params);
+      
       const result = await apiService.getRecommendations(params);
+      
+      console.log('📊 РЕЗУЛЬТАТ ПОЛУЧЕН:');
+      console.log('result:', result);
+      console.log('result.recommendations:', result.recommendations);
+      console.log('result.recommendations.length:', result.recommendations?.length);
+      console.log('result.statistics:', result.statistics);
       
       setRecommendations(result.recommendations || []);
       setStatistics(result.statistics || null);
       setShowRecommendations(true);
-      setActiveLayers(prev => ({ ...prev, recommendations: true }));
+      
+      console.log('🔄 ОБНОВЛЕНИЕ activeLayers.recommendations на true');
+      setActiveLayers(prev => {
+        const newLayers = { ...prev, recommendations: true };
+        console.log('activeLayers before:', prev);
+        console.log('activeLayers after:', newLayers);
+        return newLayers;
+      });
+      
       setLastUpdateTime(new Date());
       
+      console.log('✅ ГЕНЕРАЦИЯ РЕКОМЕНДАЦИЙ ЗАВЕРШЕНА');
+      
     } catch (error) {
-      console.error('Ошибка генерации рекомендаций:', error);
+      console.error('❌ Ошибка генерации рекомендаций:', error);
     } finally {
       setIsLoading(false);
     }
@@ -144,10 +247,23 @@ function App() {
   };
 
   const handleLayerToggle = (layerName) => {
-    setActiveLayers(prev => ({
-      ...prev,
-      [layerName]: !prev[layerName]
-    }));
+    console.log('🔄 ПЕРЕКЛЮЧЕНИЕ СЛОЯ:', {
+      layerName,
+      currentState: activeLayers[layerName],
+      newState: !activeLayers[layerName],
+      allLayers: activeLayers
+    });
+    
+    setActiveLayers(prev => {
+      const newLayers = {
+        ...prev,
+        [layerName]: !prev[layerName]
+      };
+      
+      console.log('✅ НОВОЕ СОСТОЯНИЕ СЛОЕВ:', newLayers);
+      
+      return newLayers;
+    });
   };
 
   const handleToggleCoverageZones = () => {
@@ -224,11 +340,19 @@ function App() {
         setSelectedFacilityType(settings.selectedFacilityType || 'school');
         setTravelTime(settings.travelTime || 15);
         setShowCoverageZones(settings.showCoverageZones || false);
-        setActiveLayers(settings.activeLayers || {
-          facilities: true,
-          population: true,
-          recommendations: false
+        // ПРИНУДИТЕЛЬНО отключаем рекомендации при загрузке настроек
+        setActiveLayers({
+          ...(settings.activeLayers || {}),
+          facilities: settings.activeLayers?.facilities !== false, // true по умолчанию, если не указано false
+          population: settings.activeLayers?.population !== false, // true по умолчанию, если не указано false
+          recommendations: false // ВСЕГДА false при загрузке
         });
+        console.log('📥 ЗАГРУЖЕНЫ НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ:');
+        console.log('  - darkMode:', settings.darkMode || false);
+        console.log('  - selectedFacilityType:', settings.selectedFacilityType || 'school');
+        console.log('  - activeLayers.recommendations принудительно установлен в false');
+      } else {
+        console.log('📥 НЕТ СОХРАНЁННЫХ НАСТРОЕК - используем значения по умолчанию');
       }
     } catch (error) {
       console.error('Ошибка загрузки настроек:', error);
@@ -246,6 +370,11 @@ function App() {
 
   // Загрузка настроек при запуске
   useEffect(() => {
+    // ВРЕМЕННО: очищаем localStorage для отладки
+    console.log('🗑️ ОЧИСТКА localStorage для отладки автоматических запросов');
+    localStorage.removeItem('inframap_settings');
+    localStorage.removeItem('inframap_tutorial_completed');
+    
     loadUserSettings();
   }, []);
 

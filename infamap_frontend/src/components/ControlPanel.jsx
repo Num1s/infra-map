@@ -55,12 +55,23 @@ const ControlPanel = ({
 
   // Обновляем статистику при изменении данных
   useEffect(() => {
+    console.log('🔄 ControlPanel useEffect - обновление статистики:');
+    console.log('  - facilities.length:', facilities.length);
+    console.log('  - statistics:', statistics);
+    console.log('  - recommendations.length:', recommendations.length);
+    
     setQuickStats({
       totalFacilities: facilities.length,
-      avgCoverage: statistics ? statistics.current_coverage || 68.5 : 68.5,
+      avgCoverage: statistics ? statistics.coverage_percentage || 68.5 : 68.5,
       lastUpdated: new Date()
     });
-  }, [facilities, statistics]);
+    
+    console.log('  - Новые quickStats обновлены');
+    
+    // Вызываем getAnalyticsData для проверки
+    const analytics = getAnalyticsData();
+    console.log('  - Текущие analyticsData:', analytics);
+  }, [facilities, statistics, recommendations, selectedFacilityType]);
 
   const facilityTypes = [
     { value: 'all', label: 'Все учреждения', icon: '🏢', color: 'bg-gradient-to-r from-gray-500 to-gray-600' },
@@ -75,7 +86,7 @@ const ControlPanel = ({
 
   const layerOptions = [
     { key: 'facilities', label: 'Учреждения', icon: MapPin, count: facilities.length },
-    { key: 'heatmap', label: 'Плотность населения', icon: Layers, count: null },
+    { key: 'population', label: 'Плотность населения', icon: Layers, count: null },
     { key: 'recommendations', label: 'Рекомендации', icon: Target, count: recommendations.length }
   ];
 
@@ -111,15 +122,37 @@ const ControlPanel = ({
   const getAnalyticsData = () => {
     if (!statistics) return null;
     
-    return {
-      coverage: statistics.current_coverage || 0,
-      improvement: statistics.coverage_improvement || 0,
-      peopleCovered: statistics.people_covered || 0,
-      newPoints: statistics.new_points_count || 0
+    console.log('📊 ОБРАБОТКА СТАТИСТИКИ В ControlPanel:', statistics);
+    
+    // Расчет улучшения покрытия
+    const currentCoverage = quickStats.avgCoverage; // Текущее покрытие
+    const newCoverage = statistics.coverage_percentage || 0; // Новое покрытие после рекомендаций
+    const improvement = newCoverage > currentCoverage ? newCoverage - currentCoverage : 0;
+    
+    // Расчет охвата населения на основе рекомендаций
+    const peoplePerFacility = selectedFacilityType === 'school' ? 1500 : 2500; // Примерный охват на учреждение
+    const peopleCovered = (statistics.recommendations_count || 0) * peoplePerFacility;
+    
+    const analyticsResult = {
+      coverage: newCoverage,
+      improvement: improvement,
+      peopleCovered: peopleCovered,
+      newPoints: statistics.recommendations_count || 0
     };
+    
+    console.log('✅ ПОДГОТОВЛЕННЫЕ АНАЛИТИЧЕСКИЕ ДАННЫЕ:', analyticsResult);
+    
+    return analyticsResult;
   };
 
   const analyticsData = getAnalyticsData();
+  
+  // Дополнительное логирование для отладки
+  console.log('🔄 ControlPanel RENDER - Проверка данных:');
+  console.log('  - statistics:', !!statistics);
+  console.log('  - analyticsData:', analyticsData);
+  console.log('  - recommendations.length:', recommendations.length);
+  console.log('  - selectedFacilityType:', selectedFacilityType);
 
   return (
     <div className={`h-full flex flex-col ${darkMode ? 'bg-gray-900 text-white' : 'bg-white'} transition-colors duration-300`}>
