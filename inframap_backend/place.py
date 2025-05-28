@@ -1,69 +1,62 @@
 import osmnx as ox
 import geopandas as gpd
-import pandas as pd
-from shapely.geometry import Polygon
-import matplotlib.pyplot as plt
+from shapely.geometry import Point, box
+from scipy.spatial import KDTree
+import numpy as np
 
-# Название района
-district_name = "Свердловский район, Бишкек, Кыргызстан"
+# Радиус действия школы в метрах
+RADIUS = 800  # можно изменить по твоим требованиям
 
-# Получаем геометрию района
-print("⏳ Загружаем границы района...")
-district = ox.geocode_to_gdf(district_name)
-district_polygon = district.geometry.iloc[0]
+# Пример района
+district_name = "Октябрьский район, город Бишкек, Киргизия"
+tags = {'amenity': 'school'}
 
-# Получаем здания
-print("⏳ Загружаем здания...")
-buildings = ox.features_from_place(district_name, {'building': True})
-buildings = gpd.clip(buildings, district)
+# Получаем школы
+gdf = ox.features_from_place(district_name, tags)
+names = gdf['name'].fillna('').str.lower()
+schools = gdf[
+    names.str.contains('школа') &
+    ~names.str.contains('авто|муз|спорт|искусств|центр|дополн')
+]
 
-# Получаем дороги
-print("⏳ Загружаем дороги...")
-roads_graph = ox.graph_from_place(district_name, network_type='drive')
-roads = ox.graph_to_gdfs(roads_graph, nodes=False)
+# Координаты школ
+school_points = []
+for _, row in schools.iterrows():
+    geom = row.geometry
+    point = geom if geom.geom_type == 'Point' else geom.centroid
+    school_points.append((point.x, point.y))
 
-# Получаем парки, природные зоны и воду
-print("⏳ Загружаем зеленые зоны и воду...")
-landuse = ox.features_from_place(district_name, {'landuse': True})
-natural = ox.features_from_place(district_name, {'natural': ['water', 'wood']})
-parks = ox.features_from_place(district_name, {'leisure': 'park'})
+# Преобразуем в метры (UTM)
+schools_gdf = gpd.GeoDataFrame(geometry=[Point(x, y) for x, y in school_points], crs="EPSG:4326").to_crs(32643)
+school_coords = [(p.x, p.y) for p in schools_gdf.geometry]
 
-# Объединяем все занятые участки
-print("🛠️ Объединяем занятые территории...")
-all_geoms = pd.concat([
-    buildings[['geometry']],
-    roads[['geometry']],
-    landuse[['geometry']],
-    natural[['geometry']],
-    parks[['geometry']]
-], ignore_index=True)
+# Строим KD-дерево для быстрого поиска ближайшей школы
+tree = KDTree(school_coords)
 
-used = all_geoms.geometry.union_all()
+# Получаем границу района
+district_boundary = ox.geocode_to_gdf(district_name).to_crs(32643)
+bounds = district_boundary.total_bounds
+minx, miny, maxx, maxy = bounds
 
-# Вычитаем занятые территории из района
-print("📐 Вычисляем свободные участки...")
-free_space = district_polygon.difference(used)
+# Строим сетку точек
+x_vals = np.arange(minx, maxx, 300)
+y_vals = np.arange(miny, maxy, 300)
+grid_points = [Point(x, y) for x in x_vals for y in y_vals]
+grid_gdf = gpd.GeoDataFrame(geometry=grid_points, crs=district_boundary.crs)
 
-# Отбираем участки подходящего размера
-print("🧹 Фильтруем мелкие участки...")
-if free_space.is_empty:
-    free_areas = []
-elif free_space.geom_type == 'MultiPolygon':
-    free_areas = [poly for poly in free_space.geoms if poly.area > 5000]
-elif free_space.geom_type == 'Polygon':
-    free_areas = [free_space] if free_space.area > 5000 else []
-else:
-    free_areas = []
+# Фильтруем точки, попадающие внутрь района
+grid_gdf = grid_gdf[grid_gdf.geometry.within(district_boundary.unary_union)]
 
-# Формируем GeoDataFrame
-free_gdf = gpd.GeoDataFrame(geometry=free_areas, crs=district.crs)
+# Считаем расстояние до ближайшей школы
+grid_coords = [(p.x, p.y) for p in grid_gdf.geometry]
+distances, _ = tree.query(grid_coords)
 
-# Визуализация
-if not free_gdf.empty and free_gdf.is_valid.all():
-    print(f"✅ Найдено свободных участков: {len(free_gdf)}")
-    ax = district.plot(edgecolor='black', facecolor='none', figsize=(8, 8))
-    free_gdf.plot(ax=ax, color='green', alpha=0.5)
-    plt.title("Свободные участки под застройку")
-    plt.show()
-else:
-    print("❗ Нет подходящих свободных участков для отображения.")
+# Отбираем точки, у которых расстояние до школы больше радиуса
+prov_zones = grid_gdf[distances > RADIUS]
+
+# Вывод количества и пример координат
+print(f"Количество провальных точек: {len(prov_zones)}")
+print(prov_zones.head())
+
+# Можно сохранить в GeoJSON или отобразить на карте
+prov_zones.to_crs(4326).to_file("fail_zones.geojson", driver="GeoJSON")
