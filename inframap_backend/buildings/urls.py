@@ -8,5 +8,4 @@ urlpatterns = [
 	path('get-schools/', GetSchools.as_view(), name='School List'),
 	path('get-clinics/', ClinicsByDistrictAPI.as_view(), name='clinics_api'),
 	path('find-gaps/', FindGapZones.as_view(), name='Find School Gaps'),
-	path('find-walking-gaps/', FindWalkingGapZones.as_view(), name='Find Walking Gap Zones'),
 ]

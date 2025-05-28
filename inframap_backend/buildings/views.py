@@ -14,6 +14,7 @@ from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from geopy.distance import geodesic
+import os
 
 class GetSchools(APIView):
     def get(self, request):
@@ -125,198 +126,94 @@ class ClinicsByDistrictAPI(APIView):
             'total_count': total_count,
             'districts': result
         })
+from rest_framework.views import APIView
+from rest_framework.response import Response
+import requests
+from geopy.distance import geodesic
+import numpy as np
+
+RADIUS_METERS = 1500  # Радиус охвата
+STEP_DEGREES = 0.0045  # ~500 метров
 
 class FindGapZones(APIView):
-    RADIUS_METERS = 2500  # радиус действия школы в метрах
-    GRID_STEP_METERS = 1000  # шаг сетки в метрах
-
-    def generate_grid(self, lat_min, lat_max, lon_min, lon_max):
-        """
-        Генерирует сетку точек (широта, долгота) с заданным шагом в метрах
-        """
-        def shift_lat(lat, meters):
-            return lat + (meters / 111_320)  # приблизительно: 1 градус ≈ 111.32 км
-
-        def shift_lon(lon, lat, meters):
-            return lon + (meters / (40075000 * np.cos(np.radians(lat)) / 360))
-
-        lat_points = []
-        current_lat = lat_min
-        while current_lat <= lat_max:
-            lat_points.append(current_lat)
-            current_lat = shift_lat(current_lat, self.GRID_STEP_METERS)
-
-        lon_points = []
-        current_lon = lon_min
-        while current_lon <= lon_max:
-            lon_points.append(current_lon)
-            current_lon = shift_lon(current_lon, lat_min, self.GRID_STEP_METERS)
-
-        grid = [(lat, lon) for lat in lat_points for lon in lon_points]
-        return grid
-
     def get(self, request):
-        # Кэшируем ответ get-schools
-        schools_data = cache.get('cached_schools')
-        if not schools_data:
-            response = requests.get(request.build_absolute_uri('/api/v1/get-schools/'))
+        object_type = request.query_params.get("type", "schools")
+        if object_type not in ["schools", "clinics"]:
+            return Response({"error": "Недопустимый тип. Используйте 'schools' или 'clinics'."}, status=400)
+
+        try:
+            base_url = os.getenv("INTERNAL_SERVER_URL", "http://127.0.0.1:8000")
+            endpoint = f"/api/v1/get-{object_type}/"
+            response = requests.get(f"{base_url}{endpoint}")
             if response.status_code != 200:
-                return Response({'error': 'Ошибка получения школ'})
+                return Response({"error": f"Не удалось получить данные о {object_type}"}, status=500)
+            data = response.json()
+        except requests.RequestException as e:
+            return Response({"error": f"Ошибка при запросе данных: {str(e)}"}, status=500)
 
-            schools_data = response.json()
-            cache.set('cached_schools', schools_data, 60 * 60)  # кэш на 1 час
+        all_districts_data = data.get("districts", {})
+        if not all_districts_data:
+            return Response({"error": f"Нет данных по районам для {object_type}"}, status=400)
 
-        all_coords = []
-        for district in schools_data.get('districts', {}).values():
-            for coord in district.get('coordinates', []):
-                all_coords.append((coord['lat'], coord['lon']))
+        result = {}
 
-        if not all_coords:
-            return Response({'error': 'Нет координат школ'})
+        for district_name, district_info in all_districts_data.items():
+            coords = district_info.get("coordinates", [])
+            if not coords:
+                result[district_name] = {
+                    "message": f"Нет {object_type} для анализа"
+                }
+                continue
 
-        # Создаем KD-дерево для быстрого поиска ближайших школ
-        tree = KDTree(all_coords)
+            all_coords = [(c["lat"], c["lon"]) for c in coords]
 
-        # Получаем границы города Бишкек (примерные)
-        lat_min, lat_max = 42.80, 42.89
-        lon_min, lon_max = 74.55, 74.75
+            min_lat = min(c[0] for c in all_coords)
+            max_lat = max(c[0] for c in all_coords)
+            min_lon = min(c[1] for c in all_coords)
+            max_lon = max(c[1] for c in all_coords)
 
-        grid = self.generate_grid(lat_min, lat_max, lon_min, lon_max)
+            lat_range = np.arange(min_lat, max_lat + STEP_DEGREES, STEP_DEGREES)
+            lon_range = np.arange(min_lon, max_lon + STEP_DEGREES, STEP_DEGREES)
 
-        bad_zones = []
-        for point in grid:
-            dist, idx = tree.query(point)
-            nearest_school = all_coords[idx]
-            geo_dist = geodesic(point, nearest_school).meters
-            if geo_dist > self.RADIUS_METERS:
-                bad_zones.append({
-                    'lat': point[0],
-                    'lon': point[1],
-                    'distance_to_nearest_school': int(geo_dist)
-                })
+            gap_zones = []
+            for lat in lat_range:
+                for lon in lon_range:
+                    point = (lat, lon)
+                    if all(geodesic(point, school).meters > RADIUS_METERS for school in all_coords):
+                        gap_zones.append({"lat": round(lat, 6), "lon": round(lon, 6)})
 
-        return Response({
-            'gap_zone_count': len(bad_zones),
-            'gap_zones': bad_zones
-        })
+            new_objects = []
+            covered_points = list(all_coords)
 
-class FindWalkingGapZones(APIView):
-    WALKING_RADIUS_METERS = 900  # 10 минут ходьбы (примерно 900 метров)
-    GRID_STEP_METERS = 600  # шаг сетки меньше радиуса для лучшего покрытия
-    MIN_GAP_DISTANCE = 1200  # минимальное расстояние между дырами чтобы они не перекрывались
+            while gap_zones:
+                new_obj = gap_zones[0]
+                new_objects.append(new_obj)
+                covered_points.append((new_obj["lat"], new_obj["lon"]))
+                gap_zones = [
+                    zone for zone in gap_zones
+                    if geodesic((zone["lat"], zone["lon"]), (new_obj["lat"], new_obj["lon"])).meters > RADIUS_METERS
+                ]
 
-    def generate_grid(self, lat_min, lat_max, lon_min, lon_max):
-        """
-        Генерирует сетку точек (широта, долгота) с заданным шагом в метрах
-        """
-        def shift_lat(lat, meters):
-            return lat + (meters / 111_320)  # приблизительно: 1 градус ≈ 111.32 км
-
-        def shift_lon(lon, lat, meters):
-            return lon + (meters / (40075000 * np.cos(np.radians(lat)) / 360))
-
-        lat_points = []
-        current_lat = lat_min
-        while current_lat <= lat_max:
-            lat_points.append(current_lat)
-            current_lat = shift_lat(current_lat, self.GRID_STEP_METERS)
-
-        lon_points = []
-        current_lon = lon_min
-        while current_lon <= lon_max:
-            lon_points.append(current_lon)
-            current_lon = shift_lon(current_lon, lat_min, self.GRID_STEP_METERS)
-
-        grid = [(lat, lon) for lat in lat_points for lon in lon_points]
-        return grid
-
-    def filter_non_overlapping_gaps(self, gap_zones):
-        """
-        Фильтрует дыры чтобы они не перекрывались друг с другом
-        """
-        if not gap_zones:
-            return []
-
-        # Сортируем по расстоянию до ближайшей школы (сначала самые большие дыры)
-        sorted_gaps = sorted(gap_zones, key=lambda x: x['distance_to_nearest_school'], reverse=True)
-        
-        filtered_gaps = []
-        
-        for current_gap in sorted_gaps:
-            current_point = (current_gap['lat'], current_gap['lon'])
-            
-            # Проверяем не перекрывается ли с уже добавленными дырами
-            is_overlapping = False
-            for existing_gap in filtered_gaps:
-                existing_point = (existing_gap['lat'], existing_gap['lon'])
-                distance = geodesic(current_point, existing_point).meters
-                
-                if distance < self.MIN_GAP_DISTANCE:
-                    is_overlapping = True
-                    break
-            
-            if not is_overlapping:
-                filtered_gaps.append(current_gap)
-        
-        return filtered_gaps
-
-    def get(self, request):
-        # Получаем данные школ (кэшируем для производительности)
-        schools_data = cache.get('cached_schools')
-        if not schools_data:
-            response = requests.get(request.build_absolute_uri('/api/v1/get-schools/'))
-            if response.status_code != 200:
-                return Response({'error': 'Ошибка получения данных школ'})
-
-            schools_data = response.json()
-            cache.set('cached_schools', schools_data, 60 * 60)  # кэш на 1 час
-
-        # Собираем все координаты школ
-        all_school_coords = []
-        for district in schools_data.get('districts', {}).values():
-            for coord in district.get('coordinates', []):
-                all_school_coords.append((coord['lat'], coord['lon']))
-
-        if not all_school_coords:
-            return Response({'error': 'Нет координат школ для анализа'})
-
-        # Создаем KD-дерево для быстрого поиска ближайших школ
-        tree = KDTree(all_school_coords)
-
-        # Границы города Бишкек
-        lat_min, lat_max = 42.80, 42.89
-        lon_min, lon_max = 74.55, 74.75
-
-        # Генерируем сетку точек для анализа
-        grid = self.generate_grid(lat_min, lat_max, lon_min, lon_max)
-
-        # Находим все потенциальные дыры (точки вне радиуса ходьбы от школ)
-        potential_gaps = []
-        for point in grid:
-            dist, idx = tree.query(point)
-            nearest_school = all_school_coords[idx]
-            geo_dist = geodesic(point, nearest_school).meters
-            
-            if geo_dist > self.WALKING_RADIUS_METERS:
-                potential_gaps.append({
-                    'lat': point[0],
-                    'lon': point[1],
-                    'distance_to_nearest_school': int(geo_dist),
-                    'walking_time_minutes': round(geo_dist / 90, 1)  # примерно 90 м/мин средняя скорость ходьбы
-                })
-
-        # Фильтруем дыры чтобы они не перекрывались
-        filtered_gaps = self.filter_non_overlapping_gaps(potential_gaps)
-
-        return Response({
-            'walking_radius_meters': self.WALKING_RADIUS_METERS,
-            'walking_time_minutes': 10,
-            'total_potential_gaps': len(potential_gaps),
-            'filtered_gap_count': len(filtered_gaps),
-            'gap_zones': filtered_gaps,
-            'analysis_info': {
-                'grid_step_meters': self.GRID_STEP_METERS,
-                'min_gap_distance_meters': self.MIN_GAP_DISTANCE,
-                'total_schools_analyzed': len(all_school_coords)
+            result[district_name] = {
+                "new_needed": len(new_objects),
+                "new_coordinates": new_objects
             }
+
+        return Response({
+            "type": object_type,
+            "radius_m": RADIUS_METERS,
+            "result": result
         })
+    
+from .population_service import estimate_population
+
+class PopulationEstimateView(APIView):
+    def get(self, request):
+        districts = [
+            "Октябрьский район, Бишкек, Кыргызстан",
+            "Ленинский район, Бишкек, Кыргызстан",
+            "Первомайский район, Бишкек, Кыргызстан",
+            "Свердловский район, Бишкек, Кыргызстан"
+        ]
+        data = estimate_population(districts)
+        return Response(data)
