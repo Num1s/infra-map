@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="b6f0ef1f-01f7-4f46-97ba-6a5976a87069" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/inframap_backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/inframap_backend/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +88,7 @@
       <option name="presentableId" value="Default" />
       <updated>1748325727338</updated>
       <workItem from="1748325728571" duration="420000" />
-      <workItem from="1748326150305" duration="5443000" />
+      <workItem from="1748326150305" duration="10131000" />
     </task>
     <servers />
   </component>
