@@ -1,0 +1,37 @@
+{
+  "allowedIPs": [
+    "127.0.0.1",
+    "::1",
+    "192.168.1.89",
+    "192.168.1.93",
+    "192.168.1.97",
+    "192.168.1.*",
+    "192.168.0.*"
+  ],
+  "allowedUsers": [
+    {
+      "name": "Администратор",
+      "ip": "192.168.1.89",
+      "permissions": ["read", "write", "admin"],
+      "description": "Полный доступ"
+    },
+    {
+      "name": "Аналитик",
+      "ip": "192.168.1.93",
+      "permissions": ["read", "write"],
+      "description": "Доступ к анализу данных"
+    },
+    {
+      "name": "Наблюдатель",
+      "ip": "192.168.1.97",
+      "permissions": ["read"],
+      "description": "Только просмотр"
+    }
+  ],
+  "settings": {
+    "enableIPCheck": true,
+    "enableUserAuth": false,
+    "logAccess": true,
+    "blockUnknownIPs": true
+  }
+} 

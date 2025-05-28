@@ -1196,7 +1196,7 @@ function App() {
     const performanceData = {
       facilitiesCount: facilities.length,
       recommendationsCount: recommendations.length,
-      renderTime: performance.now(),
+      renderTime: Date.now() - lastUpdateTime.getTime(),
       memoryUsage: performance.memory ? {
         used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
         total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
@@ -1216,22 +1216,6 @@ function App() {
           onClick: () => {
             setSelectedFacilityType('hospital'); // Фильтр для уменьшения нагрузки
             addNotification('info', 'Оптимизация', 'Применен фильтр для улучшения производительности');
-          }
-        }
-      );
-    }
-
-    if (performanceData.memoryUsage && performanceData.memoryUsage.used > 100) {
-      addNotificationWithAction(
-        'warning',
-        'Высокое потребление памяти',
-        `Используется ${performanceData.memoryUsage.used} МБ памяти`,
-        {
-          label: 'Очистить кэш',
-          onClick: () => {
-            // Очистка кэша и перезагрузка
-            localStorage.clear();
-            window.location.reload();
           }
         }
       );

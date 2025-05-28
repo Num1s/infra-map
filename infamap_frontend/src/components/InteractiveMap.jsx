@@ -72,7 +72,8 @@ const InteractiveMap = ({
   activeLayers,
   maxTravelTime = 30,
   showCoverageZones = true,
-  onShowFacilityDetails
+  onShowFacilityDetails,
+  darkMode = false
 }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -1695,111 +1696,226 @@ const InteractiveMap = ({
     <div className="h-full w-full relative">
       <div ref={mapRef} className="h-full w-full" />
       
-      {/* Компактная мини-легенда */}
-      <div className={`absolute bottom-4 right-4 backdrop-blur-sm rounded-xl shadow-lg border p-3 z-[1000] transition-all duration-300 ${
-        showFullLegend ? 'max-w-80' : 'max-w-64'
-      } bg-white/90 dark:bg-gray-800/90 dark:border-gray-600`}>
-        <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-bold text-gray-700 dark:text-gray-200">Статистика</h4>
+      {/* Компактная интерактивная статистика */}
+      <div className={`absolute bottom-4 right-4 backdrop-blur-md rounded-xl shadow-xl border p-3 z-[1000] transition-all duration-300 transform hover:scale-105 ${
+        showFullLegend ? 'max-w-80' : 'max-w-60'
+      } ${
+        darkMode 
+          ? 'bg-gray-900/95 border-gray-700 text-white' 
+          : 'bg-white/95 border-gray-200 text-gray-900'
+      }`}>
+        {/* Компактный заголовок */}
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-500">всего: {facilities.length}</span>
-            <button
-              onClick={() => setShowFullLegend(!showFullLegend)}
-              className="text-xs text-blue-500 hover:text-blue-700 font-bold"
-              title={showFullLegend ? "Свернуть" : "Развернуть легенду"}
-            >
-              {showFullLegend ? '▼' : '◀'}
-            </button>
+            <div className={`p-1.5 rounded-lg ${darkMode ? 'bg-blue-600/20' : 'bg-blue-50'}`}>
+              <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white text-xs">📊</span>
+              </div>
+            </div>
+            <div>
+              <h4 className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                Статистика
+              </h4>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center space-x-1`}>
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                <span>{facilities.length} объектов</span>
+              </div>
+            </div>
           </div>
+          
+          <button
+            onClick={() => setShowFullLegend(!showFullLegend)}
+            className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 ${
+              darkMode 
+                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+            }`}
+            title={showFullLegend ? "Свернуть" : "Развернуть"}
+          >
+            <div className={`transform transition-transform duration-300 ${showFullLegend ? 'rotate-180' : ''}`}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </button>
         </div>
         
         {showFullLegend ? (
-          // Полная легенда
-          <div className="space-y-1 text-xs">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">🏫</div>
-                <span>Школы ({facilities.filter(f => f.type === 'school').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-white text-xs">🏥</div>
-                <span>Больницы ({facilities.filter(f => f.type === 'hospital').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">🏨</div>
-                <span>Поликлиники ({facilities.filter(f => f.type === 'polyclinic').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs">⚕️</div>
-                <span>Клиники ({facilities.filter(f => f.type === 'clinic').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-orange-600 flex items-center justify-center text-white text-xs">🚒</div>
-                <span>Пожарные ({facilities.filter(f => f.type === 'fire_station').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs">🚔</div>
-                <span>Полиция ({facilities.filter(f => f.type === 'police_station').length})</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-white text-xs">📮</div>
-                <span>Почта ({facilities.filter(f => f.type === 'post_office').length})</span>
-              </div>
-              {recommendations && recommendations.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs">⭐</div>
-                  <span>Рекомендации ({recommendations.length})</span>
+          // Компактная полная статистика
+          <div className="space-y-2 animate-fadeIn">
+            {/* Основные категории - более компактные */}
+            <div className="space-y-1.5">
+              {[
+                { type: 'school', name: 'Школы', icon: '🏫', color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700' },
+                { type: 'hospital', name: 'Больницы', icon: '🏥', color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', textColor: 'text-red-700' },
+                { type: 'polyclinic', name: 'Поликлиники', icon: '🏨', color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
+                { type: 'clinic', name: 'Клиники', icon: '⚕️', color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', textColor: 'text-purple-700' },
+                { type: 'fire_station', name: 'Пожарные', icon: '🚒', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', textColor: 'text-orange-700' },
+                { type: 'police_station', name: 'Полиция', icon: '🚔', color: 'from-gray-600 to-gray-700', bgColor: 'bg-gray-50', textColor: 'text-gray-700' },
+                { type: 'post_office', name: 'Почта', icon: '📮', color: 'from-green-500 to-green-600', bgColor: 'bg-green-50', textColor: 'text-green-700' }
+              ].map((category) => {
+                const count = facilities.filter(f => f.type === category.type).length;
+                const percentage = facilities.length > 0 ? (count / facilities.length) * 100 : 0;
+                
+                return (
+                  <div 
+                    key={category.type}
+                    className={`relative overflow-hidden rounded-lg p-2 transition-all duration-300 hover:scale-102 cursor-pointer ${
+                      darkMode ? 'bg-gray-800/50 hover:bg-gray-800/70' : `${category.bgColor} hover:shadow-sm`
+                    }`}
+                  >
+                    <div className="flex items-center justify-between relative z-10">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-7 h-7 rounded-lg bg-gradient-to-r ${category.color} flex items-center justify-center shadow-sm`}>
+                          <span className="text-white text-sm">{category.icon}</span>
+                        </div>
+                        <div>
+                          <div className={`text-xs font-semibold ${darkMode ? 'text-white' : category.textColor}`}>
+                            {category.name}
+                          </div>
+                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {percentage.toFixed(1)}% от общего
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${darkMode ? 'text-white' : category.textColor}`}>
+                          {count}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Мини прогресс-бар */}
+                    <div className={`mt-1 h-1 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-white/50'}`}>
+                      <div 
+                        className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 ease-out`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Рекомендации - компактно */}
+            {recommendations && recommendations.length > 0 && (
+              <div className={`rounded-lg p-2 border border-dashed transition-all duration-300 hover:scale-102 ${
+                darkMode 
+                  ? 'border-purple-600/50 bg-purple-900/20' 
+                  : 'border-purple-300 bg-purple-50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center shadow-sm animate-pulse">
+                      <span className="text-white text-sm">⭐</span>
+                    </div>
+                    <div>
+                      <div className={`text-xs font-semibold ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                        Рекомендации
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`text-lg font-bold ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                    {recommendations.length}
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
+            
+            {/* Компактная аналитика */}
+            <div className={`rounded-lg p-2 ${
+              darkMode ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50' : 'bg-gradient-to-r from-gray-50 to-gray-100'
+            }`}>
+              <div className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                📈 Аналитика
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="text-center">
+                  <div className={`font-bold text-sm ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    {Math.round(facilities.reduce((sum, f) => sum + (f.rating || 4.2), 0) / facilities.length * 20)}%
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Качество</div>
+                </div>
+                <div className="text-center">
+                  <div className={`font-bold text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    {facilities.length > 0 ? Math.round(facilities.length / 10 * 100) : 0}%
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Покрытие</div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
-          // Компактная версия
-          <div className="grid grid-cols-4 gap-1 text-xs">
-            <div className="text-center">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs mx-auto mb-1">🏫</div>
-              <div className="font-bold text-emerald-600">{facilities.filter(f => f.type === 'school').length}</div>
+          // Ультра-компактная версия
+          <div className="animate-fadeIn">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: 'school', icon: '🏫', color: 'from-emerald-500 to-emerald-600' },
+                { type: 'hospital', icon: '🏥', color: 'from-red-500 to-red-600' },
+                { type: 'polyclinic', icon: '🏨', color: 'from-blue-500 to-blue-600' },
+                { type: 'clinic', icon: '⚕️', color: 'from-purple-500 to-purple-600' },
+                { type: 'fire_station', icon: '🚒', color: 'from-orange-500 to-orange-600' },
+                { type: 'police_station', icon: '🚔', color: 'from-gray-600 to-gray-700' }
+              ].map((category) => {
+                const count = facilities.filter(f => f.type === category.type).length;
+                
+                return (
+                  <div 
+                    key={category.type}
+                    className="text-center group cursor-pointer"
+                    onClick={() => setShowFullLegend(true)}
+                  >
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${category.color} flex items-center justify-center mx-auto mb-1 shadow-sm transform transition-all duration-300 group-hover:scale-110`}>
+                      <span className="text-white text-sm">{category.icon}</span>
+                    </div>
+                    <div className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                      {count}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="text-center">
-              <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white text-xs mx-auto mb-1">🏥</div>
-              <div className="font-bold text-red-600">{facilities.filter(f => f.type === 'hospital').length}</div>
-            </div>
-            <div className="text-center">
-              <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs mx-auto mb-1">🏨</div>
-              <div className="font-bold text-blue-600">{facilities.filter(f => f.type === 'polyclinic').length}</div>
-            </div>
-            <div className="text-center">
-              <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center text-white text-xs mx-auto mb-1">🚒</div>
-              <div className="font-bold text-orange-600">{facilities.filter(f => f.type === 'fire_station').length}</div>
+            
+            {/* Мини-индикатор для развертывания */}
+            <div className={`mt-2 text-center text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center justify-center space-x-1">
+                <span>Подробнее</span>
+                <svg className="w-2 h-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
           </div>
         )}
         
+        {/* Индикатор выбранного объекта - компактный */}
         {selectedFacilityId && (
-          <div className="border-t pt-2 mt-2">
+          <div className={`border-t pt-2 mt-2 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 rounded-full border border-orange-500 bg-orange-200 animate-pulse"></div>
-                <span className="text-xs font-medium truncate">
-                  {facilities.find(f => f.id === selectedFacilityId)?.name || 'неизвестно'}
+              <div className="flex items-center space-x-1.5">
+                <div className="relative">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-500 animate-pulse"></div>
+                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-orange-400 animate-ping opacity-75"></div>
+                </div>
+                <span className={`text-xs font-medium truncate max-w-24 ${darkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+                  {facilities.find(f => f.id === selectedFacilityId)?.name || 'Выбран'}
                 </span>
               </div>
               <button 
                 onClick={() => setSelectedFacilityId(null)}
-                className="text-xs text-red-500 hover:text-red-700 font-bold ml-1"
+                className={`p-0.5 rounded transition-all duration-200 hover:scale-110 ${
+                  darkMode 
+                    ? 'text-red-400 hover:bg-red-900/20' 
+                    : 'text-red-500 hover:bg-red-50'
+                }`}
                 title="Скрыть радиус"
               >
-                ✕
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            </div>
-          </div>
-        )}
-        
-        {!showFullLegend && recommendations && recommendations.length > 0 && (
-          <div className="border-t pt-1 mt-1">
-            <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 rounded-full bg-purple-500 flex items-center justify-center text-white" style={{fontSize: '6px'}}>⭐</div>
-              <span className="text-xs font-medium text-purple-600">Рекомендации: {recommendations.length}</span>
             </div>
           </div>
         )}
