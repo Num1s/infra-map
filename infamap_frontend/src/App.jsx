@@ -55,6 +55,7 @@ function App() {
   // State для модальных окон
   const [selectedFacilityForDetails, setSelectedFacilityForDetails] = useState(null);
   const [showFacilityDetails, setShowFacilityDetails] = useState(false);
+  const [selectedFacilityForMap, setSelectedFacilityForMap] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState(null);
 
@@ -265,6 +266,11 @@ function App() {
   const handleShowFacilityDetails = (facility) => {
     setSelectedFacilityForDetails(facility);
     setShowFacilityDetails(true);
+    setSelectedFacilityForMap(facility);
+    
+    setTimeout(() => {
+      setSelectedFacilityForMap(null);
+    }, 2000);
   };
 
   // Улучшенная функция экспорта с уведомлением
@@ -659,6 +665,7 @@ function App() {
             showCoverageZones={showCoverageZones}
             onShowFacilityDetails={handleShowFacilityDetails}
             darkMode={darkMode}
+            selectedFacilityForMap={selectedFacilityForMap}
           />
           
           {/* Плавающая мини-панель управления когда основная скрыта */}

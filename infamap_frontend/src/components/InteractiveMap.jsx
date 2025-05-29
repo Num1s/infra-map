@@ -73,7 +73,8 @@ const InteractiveMap = ({
   maxTravelTime = 30,
   showCoverageZones = true,
   onShowFacilityDetails,
-  darkMode = false
+  darkMode = false,
+  selectedFacilityForMap = null
 }) => {
   // Логирование props для диагностики
   console.log('🗺️ INTERACTIVEMAP PROPS:');
@@ -876,6 +877,102 @@ const InteractiveMap = ({
       addDistrictMarkers();
     }
   }, [activeLayers.population]);
+
+  // Эффект для центрирования карты на выбранном учреждении из умного поиска
+  useEffect(() => {
+    console.log('🎯 ЭФФЕКТ ЦЕНТРИРОВАНИЯ КАРТЫ:');
+    console.log('  - mapInstanceRef.current:', !!mapInstanceRef.current);
+    console.log('  - selectedFacilityForMap:', selectedFacilityForMap);
+    
+    if (!mapInstanceRef.current || !selectedFacilityForMap) {
+      console.log('❌ Карта не инициализирована или учреждение не выбрано');
+      return;
+    }
+
+    // Проверяем, есть ли у учреждения корректные координаты
+    if (!selectedFacilityForMap.coordinates || 
+        !Array.isArray(selectedFacilityForMap.coordinates) || 
+        selectedFacilityForMap.coordinates.length < 2) {
+      console.warn('❌ У выбранного учреждения некорректные координаты:', selectedFacilityForMap.coordinates);
+      return;
+    }
+
+    console.log('✅ Центрируем карту на учреждении:', {
+      name: selectedFacilityForMap.name,
+      coordinates: selectedFacilityForMap.coordinates,
+      type: selectedFacilityForMap.type
+    });
+
+    // Центрируем карту на выбранном учреждении с плавной анимацией
+    const targetZoom = 15; // Подходящий зум для детального просмотра
+    mapInstanceRef.current.setView(
+      selectedFacilityForMap.coordinates, 
+      targetZoom, 
+      { 
+        animate: true, 
+        duration: 1.0, // Длительность анимации в секундах
+        easeLinearity: 0.25 // Плавность анимации
+      }
+    );
+
+    console.log('🎯 Карта центрирована на:', selectedFacilityForMap.name);
+  }, [selectedFacilityForMap]);
+
+  // Состояние для слоя подсветки выбранного учреждения
+  const [highlightLayer, setHighlightLayer] = useState(null);
+
+  // Эффект для подсветки выбранного учреждения
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    // Удаляем предыдущую подсветку
+    if (highlightLayer) {
+      mapInstanceRef.current.removeLayer(highlightLayer);
+      setHighlightLayer(null);
+    }
+
+    if (selectedFacilityForMap && selectedFacilityForMap.coordinates) {
+      console.log('✨ Добавляем подсветку для учреждения:', selectedFacilityForMap.name);
+      
+      // Создаем пульсирующий круг вокруг выбранного учреждения
+      const highlight = L.circle(selectedFacilityForMap.coordinates, {
+        radius: 200, // Радиус подсветки в метрах
+        fillColor: '#3b82f6',
+        fillOpacity: 0.3,
+        color: '#1d4ed8',
+        weight: 3,
+        opacity: 0.8,
+        interactive: false, // Не блокируем клики на учреждение
+        className: 'facility-highlight' // Для CSS анимации
+      });
+
+      // Добавляем CSS для анимации пульсации
+      const style = document.createElement('style');
+      style.textContent = `
+        .facility-highlight {
+          animation: facilityPulse 2s infinite;
+        }
+        @keyframes facilityPulse {
+          0% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.1); }
+          100% { opacity: 0.3; transform: scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      highlight.addTo(mapInstanceRef.current);
+      setHighlightLayer(highlight);
+
+      // Автоматически убираем подсветку через 5 секунд
+      setTimeout(() => {
+        if (highlight && mapInstanceRef.current) {
+          mapInstanceRef.current.removeLayer(highlight);
+          setHighlightLayer(null);
+          document.head.removeChild(style);
+        }
+      }, 5000);
+    }
+  }, [selectedFacilityForMap, highlightLayer]);
 
   // Создание иконки для учреждения
   const createFacilityIcon = (type) => {
