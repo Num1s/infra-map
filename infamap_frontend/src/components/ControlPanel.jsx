@@ -77,7 +77,6 @@ const ControlPanel = ({
   const facilityTypes = [
     { value: 'all', label: 'Все учреждения', icon: '🏢', color: 'bg-gradient-to-r from-gray-500 to-gray-600' },
     { value: 'school', label: 'Школы', icon: '🏫', color: 'bg-gradient-to-r from-emerald-500 to-emerald-600' },
-    { value: 'hospital', label: 'Больницы', icon: '🏥', color: 'bg-gradient-to-r from-red-600 to-red-700' },
     { value: 'polyclinic', label: 'Поликлиники', icon: '🏨', color: 'bg-gradient-to-r from-blue-500 to-blue-600' },
     { value: 'clinic', label: 'Клиники', icon: '⚕️', color: 'bg-gradient-to-r from-purple-500 to-purple-600' },
     { value: 'fire_station', label: 'Пожарные станции', icon: '🚒', color: 'bg-gradient-to-r from-orange-500 to-orange-600' },
@@ -210,7 +209,7 @@ const ControlPanel = ({
                 </div>
                 <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Всего объектов</div>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                  {facilities.filter(f => f.type === 'school').length} школ, {facilities.filter(f => f.type === 'hospital').length} больниц
+                  {facilities.filter(f => f.type === 'school').length} школ, {facilities.filter(f => f.type === 'clinic').length} клиник
                 </div>
               </div>
               <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full opacity-10 transform translate-x-8 -translate-y-8"></div>

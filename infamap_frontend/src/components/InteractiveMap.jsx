@@ -619,7 +619,7 @@ const InteractiveMap = ({
             }
             
             // Для других типов медицинских учреждений также показываем clinic_gap
-            if ((selectedFacilityType === 'hospital' || selectedFacilityType === 'polyclinic')) {
+            if ((selectedFacilityType === 'polyclinic' || selectedFacilityType === 'clinic')) {
               const isClinicRelated = (rec.type === 'clinic_gap' || rec.facility_type === 'clinic');
               console.log(`   ✅ medical check: type="${rec.type}", facility_type="${rec.facility_type}" -> ${isClinicRelated}`);
               return isClinicRelated;
@@ -1991,7 +1991,6 @@ const InteractiveMap = ({
             <div className="space-y-1.5">
               {[
                 { type: 'school', name: 'Школы', icon: '🏫', color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700' },
-                { type: 'hospital', name: 'Больницы', icon: '🏥', color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', textColor: 'text-red-700' },
                 { type: 'polyclinic', name: 'Поликлиники', icon: '🏨', color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
                 { type: 'clinic', name: 'Клиники', icon: '⚕️', color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', textColor: 'text-purple-700' },
                 { type: 'fire_station', name: 'Пожарные', icon: '🚒', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', textColor: 'text-orange-700' },
@@ -2097,7 +2096,6 @@ const InteractiveMap = ({
             <div className="grid grid-cols-3 gap-2">
               {[
                 { type: 'school', icon: '🏫', color: 'from-emerald-500 to-emerald-600' },
-                { type: 'hospital', icon: '🏥', color: 'from-red-500 to-red-600' },
                 { type: 'polyclinic', icon: '🏨', color: 'from-blue-500 to-blue-600' },
                 { type: 'clinic', icon: '⚕️', color: 'from-purple-500 to-purple-600' },
                 { type: 'fire_station', icon: '🚒', color: 'from-orange-500 to-orange-600' },

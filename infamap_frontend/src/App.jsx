@@ -705,7 +705,6 @@ function App() {
                   >
                     <option value="all">Все учреждения</option>
                     <option value="school">Школы</option>
-                    <option value="hospital">Больницы</option>
                     <option value="fire_station">Пожарные станции</option>
                   </select>
                 </div>
@@ -738,31 +737,6 @@ function App() {
             </div>
           )}
           
-          {isLoading && (
-            <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-[1000] backdrop-blur-sm">
-              <div className={`rounded-xl p-6 shadow-2xl border animate-bounceIn ${
-                darkMode 
-                  ? 'bg-gray-800 border-gray-600' 
-                  : 'bg-white border-gray-100'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-                    <div className="absolute inset-0 rounded-full border-2 border-primary-200 animate-ping"></div>
-                  </div>
-                  <div>
-                    <div className={`font-medium transition-colors duration-300 ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Анализируем данные...</div>
-                    <div className={`text-sm transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>Это может занять несколько секунд</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Информация о последнем обновлении */}
           {lastUpdateTime && statistics && (
             <div className={`absolute top-4 right-4 backdrop-blur-sm rounded-lg p-3 text-xs shadow-md z-[1000] animate-fadeInUp ${
