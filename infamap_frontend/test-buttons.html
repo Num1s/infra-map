@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Buttons</title>
+</head>
+<body>
+    <h1>Тест кнопок</h1>
+    
+    <h2>Тест 1: Прямые вызовы</h2>
+    <button onclick="console.log('Test 1: Прямой вызов'); alert('Тест 1 работает!');">Тест 1</button>
+    
+    <h2>Тест 2: Проверка window объекта</h2>
+    <button onclick="console.log('window.showFacilityDetails:', typeof window.showFacilityDetails); alert('Проверьте консоль');">Проверить функции</button>
+    
+    <h2>Тест 3: Вызов функций если они существуют</h2>
+    <button onclick="if(window.showFacilityDetails) { console.log('Вызов showFacilityDetails'); window.showFacilityDetails('1'); } else { alert('Функция не найдена'); }">Тест showFacilityDetails</button>
+    
+    <button onclick="if(window.toggleFacilityCoverage) { console.log('Вызов toggleFacilityCoverage'); window.toggleFacilityCoverage('1'); } else { alert('Функция не найдена'); }">Тест toggleFacilityCoverage</button>
+
+    <h2>Инструкции:</h2>
+    <ol>
+        <li>Откройте консоль браузера (F12)</li>
+        <li>Перейдите на главную страницу приложения</li>
+        <li>Кликните на любое учреждение на карте</li>
+        <li>В popup нажмите кнопки "Подробности" или "Радиус"</li>
+        <li>Проверьте сообщения в консоли</li>
+    </ol>
+
+    <script>
+        console.log('🧪 Тестовая страница загружена');
+        console.log('Проверка глобальных функций:');
+        console.log('  - window.showFacilityDetails:', typeof window.showFacilityDetails);
+        console.log('  - window.toggleFacilityCoverage:', typeof window.toggleFacilityCoverage);
+        console.log('  - window.showDetailedPlacementAnalysis:', typeof window.showDetailedPlacementAnalysis);
+    </script>
+</body>
+</html> 

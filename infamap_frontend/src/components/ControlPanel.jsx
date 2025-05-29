@@ -14,7 +14,6 @@ import {
   History,
   TrendingUp,
   BarChart3,
-  Zap,
   Moon,
   Sun,
   Download,
@@ -24,6 +23,7 @@ import {
   Users,
   Target
 } from 'lucide-react';
+import { getMockFacilityCount } from '../services/mockData.js';
 
 const ControlPanel = ({
   selectedFacilityType,
@@ -41,7 +41,8 @@ const ControlPanel = ({
   statistics = null,
   recommendations = [],
   darkMode = false,
-  setDarkMode
+  setDarkMode,
+  onShowFacilityDetails
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -120,6 +121,15 @@ const ControlPanel = ({
 
   // Аналитические данные из статистики
   const getAnalyticsData = () => {
+    // Проверяем, поддерживается ли выбранный тип учреждения
+    const unsupportedTypes = ['polyclinic', 'police_station', 'post_office'];
+    if (unsupportedTypes.includes(selectedFacilityType)) {
+      return {
+        isUnsupported: true,
+        typeName: facilityTypes.find(t => t.value === selectedFacilityType)?.label || 'Учреждения'
+      };
+    }
+    
     if (!statistics) return null;
     
     console.log('📊 ОБРАБОТКА СТАТИСТИКИ В ControlPanel:', statistics);
@@ -238,12 +248,9 @@ const ControlPanel = ({
               darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-orange-50 to-red-50'
             } border ${darkMode ? 'border-gray-700' : 'border-orange-100'}`}>
               <div className="text-lg font-bold text-orange-600">
-                {facilities.filter(f => f.rating).length > 0 
-                  ? (facilities.reduce((sum, f) => sum + (f.rating || 0), 0) / facilities.filter(f => f.rating).length).toFixed(1)
-                  : '-'
-                }
+                {Object.values(activeLayers).filter(Boolean).length}
               </div>
-              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Рейтинг ⭐</div>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Слоев активно</div>
             </div>
             
             <div className={`text-center p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
@@ -267,34 +274,73 @@ const ControlPanel = ({
                   Аналитика рекомендаций
                 </h4>
                 <div className={`text-xs px-2 py-1 rounded-full ${
-                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-600'
+                  analyticsData.isUnsupported 
+                    ? darkMode ? 'bg-yellow-900/30 text-yellow-300' : 'bg-yellow-100 text-yellow-700'
+                    : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-600'
                 }`}>
-                  Данные сервера
+                  {analyticsData.isUnsupported ? 'В разработке' : 'Данные сервера'}
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Улучшение</span>
-                    <span className="text-sm font-medium text-green-600">+{analyticsData.improvement?.toFixed(1) || 0}%</span>
+              {analyticsData.isUnsupported ? (
+                <div className="space-y-3">
+                  <div className={`text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Функция в разработке</span>
+                    </div>
+                    <p className="text-xs">
+                      Анализ для {analyticsData.typeName?.toLowerCase()} будет доступен в следующих версиях
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Охват населения</span>
-                    <span className="text-sm font-medium text-blue-600">{analyticsData.peopleCovered?.toLocaleString() || 0}</span>
+                  
+                  <div className="grid grid-cols-2 gap-3 opacity-60">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Улучшение</span>
+                        <span className="text-sm font-medium text-green-600">🔄 +2.5%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Охват населения</span>
+                        <span className="text-sm font-medium text-blue-600">🔄 15,000</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Новых точек</span>
+                        <span className="text-sm font-medium text-purple-600">🔄 3-5</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Тип объектов</span>
+                        <span className="text-sm font-medium text-orange-600">{analyticsData.typeName}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Новых точек</span>
-                    <span className="text-sm font-medium text-purple-600">{analyticsData.newPoints || 0}</span>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Улучшение</span>
+                      <span className="text-sm font-medium text-green-600">+{analyticsData.improvement?.toFixed(1) || 0}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Охват населения</span>
+                      <span className="text-sm font-medium text-blue-600">{analyticsData.peopleCovered?.toLocaleString() || 0}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Тип объектов</span>
-                    <span className="text-sm font-medium text-orange-600">{facilityTypes.find(t => t.value === selectedFacilityType)?.label || 'Все'}</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Новых точек</span>
+                      <span className="text-sm font-medium text-purple-600">{analyticsData.newPoints || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Тип объектов</span>
+                      <span className="text-sm font-medium text-orange-600">{facilityTypes.find(t => t.value === selectedFacilityType)?.label || 'Все'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -341,7 +387,9 @@ const ControlPanel = ({
                     className={`p-3 hover:${darkMode ? 'bg-gray-700' : 'bg-gray-50'} cursor-pointer border-b last:border-b-0 ${darkMode ? 'border-gray-600' : 'border-gray-100'} transition-colors`}
                     onClick={() => {
                       setSearchQuery('');
-                      // Zoom to facility logic here
+                      if (onShowFacilityDetails) {
+                        onShowFacilityDetails(facility);
+                      }
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -392,12 +440,8 @@ const ControlPanel = ({
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center space-x-2 p-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 transition-all transform hover:scale-105 shadow-lg">
-              <Zap className="w-4 h-4" />
-              <span className="text-sm font-medium">Быстрый анализ</span>
-            </button>
-            <button className={`flex items-center justify-center space-x-2 p-3 rounded-xl transition-all transform hover:scale-105 shadow-lg ${
+          <div className="space-y-3">
+            <button className={`w-full flex items-center justify-center space-x-2 p-3 rounded-xl transition-all transform hover:scale-105 shadow-lg ${
               darkMode 
                 ? 'bg-gradient-to-r from-gray-700 to-gray-600 text-white hover:from-gray-600 hover:to-gray-500' 
                 : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300'
@@ -414,12 +458,13 @@ const ControlPanel = ({
             </label>
             <div className="grid grid-cols-1 gap-2">
               {facilityTypes.map((type) => {
-                const typeCount = facilities.filter(f => type.value === 'all' || f.type === type.value).length;
-                const avgRating = type.value !== 'all' 
-                  ? facilities.filter(f => f.type === type.value && f.rating)
-                      .reduce((sum, f, _, arr) => sum + (f.rating / arr.length), 0)
-                  : facilities.filter(f => f.rating)
-                      .reduce((sum, f, _, arr) => sum + (f.rating / arr.length), 0);
+                // Рассчитываем количество учреждений с учетом фейковых данных
+                let typeCount = 0;
+                if (type.value === 'all') {
+                  typeCount = facilities.length;
+                } else {
+                  typeCount = facilities.filter(f => f.type === type.value).length;
+                }
                 
                 return (
                   <div key={type.value} className="space-y-0">
@@ -445,14 +490,9 @@ const ControlPanel = ({
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium">{type.label}</span>
-                            {avgRating > 0 && (
-                              <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : 'text-yellow-500'}`}>
-                                ⭐ {avgRating.toFixed(1)}
-                              </div>
-                            )}
                           </div>
                           <div className={`text-xs ${selectedFacilityType === type.value ? 'text-white opacity-75' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {typeCount} объектов
+                            {typeCount} объектов{typeCount > 0 && facilities.some(f => f.isMock && (type.value === 'all' || f.type === type.value)) ? ' 🔄' : ''}
                           </div>
                         </div>
                       </div>
@@ -538,167 +578,142 @@ const ControlPanel = ({
                     <div className="flex items-center space-x-3">
                       <IconComponent className={`w-5 h-5 ${activeLayers[layer.key] ? 'text-primary-600' : darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                       <div>
-                        <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>{layer.label}</span>
+                        <span className={`text-sm font-medium ${
+                          darkMode ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          {layer.label}
+                        </span>
                         {layer.count !== null && (
-                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {layer.count} элементов
+                          <div className={`text-xs ${
+                            darkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            {layer.count} объектов
                           </div>
                         )}
                       </div>
                     </div>
+                    
                     <button
                       onClick={() => onLayerToggle(layer.key)}
-                      className={`p-2 rounded-lg transition-colors ${
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                         activeLayers[layer.key]
-                          ? 'text-primary-600 hover:text-primary-700'
-                          : darkMode 
-                            ? 'text-gray-400 hover:text-gray-300'
-                            : 'text-gray-400 hover:text-gray-500'
+                          ? 'bg-primary-600'
+                          : darkMode ? 'bg-gray-600' : 'bg-gray-200'
                       }`}
                     >
-                      {activeLayers[layer.key] ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          activeLayers[layer.key] ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
                     </button>
                   </div>
                 );
               })}
-              
-              {/* Coverage Zones Toggle */}
-              <div className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                showCoverageZones
-                  ? darkMode 
-                    ? 'bg-gray-700 border-gray-600'
-                    : 'bg-primary-50 border-primary-200'
-                  : darkMode
-                    ? 'bg-gray-800 border-gray-600 hover:bg-gray-700'
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`w-5 h-5 rounded-full border-2 ${showCoverageZones ? 'border-primary-600' : darkMode ? 'border-gray-400' : 'border-gray-400'}`}></div>
-                  <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>Зоны покрытия</span>
-                </div>
-                <button
-                  onClick={onToggleCoverageZones}
-                  className={`p-2 rounded-lg transition-colors ${
-                    showCoverageZones
-                      ? 'text-primary-600 hover:text-primary-700'
-                      : darkMode 
-                        ? 'text-gray-400 hover:text-gray-300'
-                        : 'text-gray-400 hover:text-gray-500'
-                  }`}
-                >
-                  {showCoverageZones ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-              
-              {/* Подсказка об индивидуальном радиусе */}
-              <div className={`mt-3 p-3 rounded-lg ${darkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
-                <p className={`text-xs ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  💡 <strong>Новая функция:</strong> Нажмите кнопку "🎯 Радиус" в попапе любого учреждения, чтобы увидеть его индивидуальную зону покрытия за {maxTravelTime} минут
-                </p>
-              </div>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Информация о неподдерживаемых типах */}
+          {['polyclinic', 'police_station', 'post_office'].includes(selectedFacilityType) && (
+            <div className={`rounded-xl p-4 ${
+              darkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'
+            }`}>
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                <span className={`text-sm font-medium ${darkMode ? 'text-yellow-300' : 'text-yellow-800'}`}>
+                  Функция в разработке
+                </span>
+              </div>
+              <p className={`text-xs ${darkMode ? 'text-yellow-200' : 'text-yellow-700'}`}>
+                Анализ для выбранного типа учреждений будет доступен в следующих версиях.
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
           <div className="space-y-3">
             <button
               onClick={onGenerateRecommendations}
-              disabled={isLoading}
-              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed h-12 rounded-xl font-semibold text-sm shadow-lg transform transition-all hover:scale-105 disabled:hover:scale-100"
+              disabled={isLoading || ['polyclinic', 'police_station', 'post_office'].includes(selectedFacilityType)}
+              className={`w-full btn-primary flex items-center justify-center space-x-2 py-3 ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              } ${
+                ['polyclinic', 'police_station', 'post_office'].includes(selectedFacilityType) 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : ''
+              }`}
             >
               {isLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   <span>Анализируем...</span>
                 </>
               ) : (
                 <>
-                  <TrendingUp className="w-5 h-5" />
-                  <span>Сгенерировать рекомендации</span>
+                  <Play className="w-4 h-4" />
+                  <span>Генерировать рекомендации</span>
                 </>
               )}
             </button>
 
             <button
               onClick={onClearMap}
-              disabled={isLoading}
-              className="w-full btn-secondary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed h-12 rounded-xl font-semibold text-sm shadow-lg transform transition-all hover:scale-105 disabled:hover:scale-100"
+              className="w-full btn-secondary flex items-center justify-center space-x-2 py-3"
             >
-              <RotateCcw className="w-5 h-5" />
+              <RotateCcw className="w-4 h-4" />
               <span>Очистить карту</span>
             </button>
           </div>
 
-          {/* Tips */}
-          <div className={`rounded-xl p-4 ${darkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'}`}>
-            <h4 className={`text-sm font-semibold ${darkMode ? 'text-blue-300' : 'text-blue-900'} mb-2 flex items-center`}>
-              <Zap className="w-4 h-4 mr-2" />
-              Умные советы
-            </h4>
-            <ul className={`text-xs ${darkMode ? 'text-blue-200' : 'text-blue-800'} space-y-1`}>
-              <li>• Используйте поиск для быстрого нахождения объектов</li>
-              <li>• Добавляйте важные места в избранное ⭐</li>
-              <li>• Настройте время доезда для точного анализа</li>
-              <li>• Комбинируйте слои для лучшей визуализации</li>
-            </ul>
+          {/* Coverage Zones Toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Зоны покрытия
+              </label>
+              <button
+                onClick={onToggleCoverageZones}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  showCoverageZones
+                    ? 'bg-primary-600'
+                    : darkMode ? 'bg-gray-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showCoverageZones ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Показать зоны доступности для выбранного времени доезда
+            </p>
           </div>
 
-          {/* Live Statistics */}
-          {statistics && (
-            <div className={`rounded-xl p-4 ${darkMode ? 'bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-800' : 'bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200'}`}>
-              <h4 className={`text-sm font-semibold ${darkMode ? 'text-purple-300' : 'text-purple-900'} mb-3 flex items-center`}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Статистика анализа
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className={`text-center p-2 rounded ${darkMode ? 'bg-purple-800/30' : 'bg-white/70'}`}>
-                  <div className={`font-bold ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
-                    {(statistics.current_coverage || 0).toFixed(1)}%
-                  </div>
-                  <div className={`text-xs ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>Текущее покрытие</div>
-                </div>
-                <div className={`text-center p-2 rounded ${darkMode ? 'bg-pink-800/30' : 'bg-white/70'}`}>
-                  <div className={`font-bold ${darkMode ? 'text-pink-300' : 'text-pink-700'}`}>
-                    {statistics.new_points_count || 0}
-                  </div>
-                  <div className={`text-xs ${darkMode ? 'text-pink-400' : 'text-pink-600'}`}>Новых точек</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Favorites Section */}
+          {/* Quick Stats Summary */}
           {favoritesFacilities.length > 0 && (
-            <div className={`rounded-xl p-4 ${darkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200'}`}>
-              <h4 className={`text-sm font-semibold ${darkMode ? 'text-yellow-300' : 'text-yellow-900'} mb-2 flex items-center`}>
-                <Star className="w-4 h-4 mr-2" />
-                Избранное ({favoritesFacilities.length})
-              </h4>
+            <div className={`rounded-xl p-4 transition-colors ${
+              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-blue-50 border border-blue-200'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Избранные объекты
+                </h4>
+                <Heart className="w-4 h-4 text-red-500" />
+              </div>
               <div className="space-y-1">
-                {favoritesFacilities.slice(0, 3).map(facility => (
-                  <div 
-                    key={facility.id}
-                    className={`text-xs p-2 rounded cursor-pointer transition-colors ${
-                      darkMode 
-                        ? 'bg-yellow-800/30 hover:bg-yellow-700/30 text-yellow-200' 
-                        : 'bg-white/70 hover:bg-white text-yellow-800'
-                    }`}
-                    onClick={() => {
-                      // Focus on facility on map
-                    }}
-                  >
-                    <div className="font-medium">{facility.name}</div>
-                    <div className={`${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                      {getFacilityIconConfig(facility.type).name}
-                    </div>
+                {favoritesFacilities.slice(0, 3).map(fav => (
+                  <div key={fav.id} className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {fav.name}
                   </div>
                 ))}
-                {favoritesFacilities.length > 3 && (
-                  <div className={`text-xs text-center ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                    +{favoritesFacilities.length - 3} ещё
-                  </div>
-                )}
               </div>
+              {favoritesFacilities.length > 3 && (
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  +{favoritesFacilities.length - 3} еще
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -707,19 +722,4 @@ const ControlPanel = ({
   );
 };
 
-// Helper function for getting facility icon config
-const getFacilityIconConfig = (type) => {
-  const configs = {
-    school: { name: 'Школа' },
-    hospital: { name: 'Больница' },
-    polyclinic: { name: 'Поликлиника' },
-    clinic: { name: 'Клиника' },
-    fire_station: { name: 'Пожарная станция' },
-    police_station: { name: 'Полицейский участок' },
-    post_office: { name: 'Почтовое отделение' },
-    all: { name: 'Все учреждения' }
-  };
-  return configs[type] || { name: 'Учреждение' };
-};
-
-export default ControlPanel; 
+export default ControlPanel;

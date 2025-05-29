@@ -102,43 +102,113 @@ const InteractiveMap = ({
 
   // Устанавливаем глобальные функции для обработки кликов
   useEffect(() => {
+    console.log('🔧 УСТАНОВКА ГЛОБАЛЬНЫХ ФУНКЦИЙ...');
+    console.log('  - facilities.length:', facilities.length);
+    console.log('  - onShowFacilityDetails exists:', !!onShowFacilityDetails);
+    
+    // Тестируем установленные функции
+    console.log('🧪 ТЕСТИРОВАНИЕ ГЛОБАЛЬНЫХ ФУНКЦИЙ:');
+    console.log('  - window.showFacilityDetails:', typeof window.showFacilityDetails);
+    console.log('  - window.toggleFacilityCoverage:', typeof window.toggleFacilityCoverage);
+    console.log('  - window.showDetailedPlacementAnalysis:', typeof window.showDetailedPlacementAnalysis);
+    
     // Функция для показа деталей учреждения
-    window.showFacilityDetails = (facilityId) => {
-      console.log('showFacilityDetails вызвана для ID:', facilityId);
+    window.showFacilityDetails = (facilityIdStr) => {
+      console.log('🔍 showFacilityDetails вызвана для ID:', facilityIdStr, 'type:', typeof facilityIdStr);
       try {
-        const facility = facilities.find(f => f.id === parseInt(facilityId));
-        if (facility && onShowFacilityDetails) {
-          onShowFacilityDetails(facility);
+        // Поддерживаем как числовые, так и строковые ID
+        let facilityId = facilityIdStr;
+        
+        // Если это строка с числом, пытаемся преобразовать
+        if (typeof facilityIdStr === 'string' && !isNaN(facilityIdStr) && !facilityIdStr.includes('_')) {
+          facilityId = parseInt(facilityIdStr);
+          console.log('  - Преобразованный в число ID:', facilityId);
         } else {
-          console.warn('Учреждение не найдено или отсутствует обработчик:', facilityId);
+          console.log('  - Используем строковый ID:', facilityId);
+        }
+        
+        console.log('  - Доступные учреждения:', facilities.map(f => ({ id: f.id, name: f.name, type: typeof f.id })));
+        
+        const facility = facilities.find(f => {
+          // Сравниваем и как строки и как числа для надежности
+          return f.id === facilityId || 
+                 f.id === facilityIdStr || 
+                 String(f.id) === String(facilityId) ||
+                 String(f.id) === String(facilityIdStr);
+        });
+        
+        console.log('  - Найденное учреждение:', facility?.name);
+        
+        if (facility) {
+          console.log('  - Вызываем onShowFacilityDetails для:', facility.name);
+          if (onShowFacilityDetails && typeof onShowFacilityDetails === 'function') {
+            onShowFacilityDetails(facility);
+          } else {
+            console.error('❌ onShowFacilityDetails не является функцией:', typeof onShowFacilityDetails);
+          }
+        } else {
+          console.warn('❌ Учреждение не найдено для ID:', facilityId);
+          console.log('   Доступные IDs:', facilities.map(f => f.id));
         }
       } catch (error) {
-        console.error('Ошибка в showFacilityDetails:', error);
+        console.error('❌ Ошибка в showFacilityDetails:', error);
       }
     };
 
     // Функция для переключения радиуса покрытия
-    window.toggleFacilityCoverage = (facilityId) => {
-      console.log('toggleFacilityCoverage вызвана для ID:', facilityId);
+    window.toggleFacilityCoverage = (facilityIdStr) => {
+      console.log('🎯 toggleFacilityCoverage вызвана для ID:', facilityIdStr, 'type:', typeof facilityIdStr);
       try {
-        const id = parseInt(facilityId);
+        // Поддерживаем как числовые, так и строковые ID
+        let facilityId = facilityIdStr;
+        
+        // Если это строка с числом, пытаемся преобразовать
+        if (typeof facilityIdStr === 'string' && !isNaN(facilityIdStr) && !facilityIdStr.includes('_')) {
+          facilityId = parseInt(facilityIdStr);
+          console.log('  - Преобразованный в число ID:', facilityId);
+        } else {
+          console.log('  - Используем строковый ID:', facilityId);
+        }
+        
+        console.log('  - Текущий selectedFacilityId:', selectedFacilityId);
+        
+        // Проверяем, что учреждение с таким ID существует
+        const facility = facilities.find(f => {
+          return f.id === facilityId || 
+                 f.id === facilityIdStr || 
+                 String(f.id) === String(facilityId) ||
+                 String(f.id) === String(facilityIdStr);
+        });
+        
+        if (!facility) {
+          console.warn('❌ Учреждение с ID', facilityId, 'не найдено');
+          return;
+        }
+        
+        console.log('  - Найденное учреждение:', facility.name);
+        
         setSelectedFacilityId(prevId => {
-          const newId = prevId === id ? null : id;
-          console.log('Переключение радиуса:', prevId, '->', newId);
+          // Сравниваем правильно с учетом типов ID
+          const isSameId = prevId === facility.id || 
+                          String(prevId) === String(facility.id);
+          const newId = isSameId ? null : facility.id;
+          console.log('  - Переключение радиуса:', prevId, '->', newId);
           return newId;
         });
       } catch (error) {
-        console.error('Ошибка в toggleFacilityCoverage:', error);
+        console.error('❌ Ошибка в toggleFacilityCoverage:', error);
       }
     };
 
     // Функция для подробного анализа размещения
     window.showDetailedPlacementAnalysis = (recommendationData) => {
-      console.log('Подробный анализ размещения:', recommendationData);
+      console.log('📊 showDetailedPlacementAnalysis вызвана:', typeof recommendationData);
       try {
         const analysis = typeof recommendationData === 'string' 
           ? JSON.parse(recommendationData) 
           : recommendationData;
+        
+        console.log('  - Parsed analysis:', analysis);
         
         // Создаем модальное окно с подробным анализом
         const modal = document.createElement('div');
@@ -176,8 +246,8 @@ const InteractiveMap = ({
         document.addEventListener('keydown', handleEscape);
         
       } catch (error) {
-        console.error('Ошибка в showDetailedPlacementAnalysis:', error);
-        alert('Ошибка при открытии подробного анализа');
+        console.error('❌ Ошибка в showDetailedPlacementAnalysis:', error);
+        alert('Ошибка при открытии подробного анализа: ' + error.message);
       }
     };
 
@@ -185,11 +255,12 @@ const InteractiveMap = ({
     console.log('Глобальные функции установлены. Facilities:', facilities.length, 'Selected ID:', selectedFacilityId);
 
     return () => {
+      console.log('🗑️ ОЧИСТКА ГЛОБАЛЬНЫХ ФУНКЦИЙ');
       delete window.showFacilityDetails;
       delete window.toggleFacilityCoverage;
       delete window.showDetailedPlacementAnalysis;
     };
-  }, [facilities, onShowFacilityDetails]); // Убрал selectedFacilityId из зависимостей!
+  }, [facilities, onShowFacilityDetails]); // Правильные зависимости без selectedFacilityId
 
   // Инициализация карты
   useEffect(() => {
@@ -367,10 +438,16 @@ const InteractiveMap = ({
     }
   }, [facilities, activeLayers.facilities, selectedFacilityType, maxTravelTime, showCoverageZones]);
 
-  // Обработка индивидуального радиуса покрытия
+  // Обновление индивидуального радиуса покрытия
   useEffect(() => {
+    console.log('🎯 ОБНОВЛЕНИЕ ИНДИВИДУАЛЬНОГО РАДИУСА:');
+    console.log('  - mapInstanceRef.current:', !!mapInstanceRef.current);
+    console.log('  - selectedFacilityId:', selectedFacilityId);
+    console.log('  - facilities.length:', facilities.length);
+    console.log('  - maxTravelTime:', maxTravelTime);
+
     if (!mapInstanceRef.current) {
-      console.log('Карта ещё не инициализирована');
+      console.log('❌ Карта не инициализирована');
       return;
     }
 
@@ -383,77 +460,110 @@ const InteractiveMap = ({
       console.log('Предыдущий радиус удален');
     }
 
-    if (selectedFacilityId) {
+    if (selectedFacilityId && facilities.length > 0) {
       const facility = facilities.find(f => f.id === selectedFacilityId);
+      console.log('Поиск учреждения с ID:', selectedFacilityId);
       console.log('Найдено учреждение:', facility?.name);
+      console.log('Координаты учреждения:', facility?.coordinates);
       
-      if (facility && facility.coordinates) {
+      if (facility && facility.coordinates && Array.isArray(facility.coordinates) && facility.coordinates.length >= 2) {
         try {
           const individualCoverageLayer = L.layerGroup();
           const config = getFacilityIconConfig(facility.type);
           
           // Создаем более заметный индивидуальный радиус
           const radius = calculateCoverageRadius(maxTravelTime, facility.type);
-          console.log('Радиус покрытия:', radius, 'метров для', facility.type);
+          console.log('Рассчитанный радиус покрытия:', radius, 'метров для', facility.type, 'с временем', maxTravelTime, 'мин');
           
           const coverageCircle = L.circle(facility.coordinates, {
             radius: radius,
             fillColor: config.color,
-            fillOpacity: 0.2,
+            fillOpacity: 0.25,
             color: config.color,
-            weight: 3,
-            opacity: 0.8,
+            weight: 4,
+            opacity: 0.9,
             interactive: false,
             dashArray: '10, 5'
-          });
-          
-          // Добавляем центральную точку с пульсацией
-          const centerMarker = L.circleMarker(facility.coordinates, {
-            radius: 8,
-            fillColor: config.color,
-            fillOpacity: 0.9,
-            color: 'white',
-            weight: 3,
-            opacity: 1,
-            className: 'individual-coverage-center'
           });
           
           // Добавляем стильную подпись
           const label = L.marker(facility.coordinates, {
             icon: L.divIcon({
-              className: 'individual-coverage-label',
-              html: `<div class="coverage-info-card">
-                <div class="coverage-header">
-                  <span class="coverage-icon">${config.symbol}</span>
-                  <span class="coverage-title">${facility.name}</span>
+              html: `<div class="coverage-info-card" style="
+                background: white;
+                border: 2px solid ${config.color};
+                border-radius: 12px;
+                padding: 8px 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                font-family: system-ui, sans-serif;
+                white-space: nowrap;
+                transform: translateY(-10px);
+              ">
+                <div class="coverage-header" style="
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  margin-bottom: 4px;
+                ">
+                  <span class="coverage-icon" style="font-size: 16px;">${config.symbol}</span>
+                  <span class="coverage-title" style="
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 13px;
+                  ">${facility.name}</span>
                 </div>
-                <div class="coverage-stats">
-                  <span class="coverage-distance">🎯 ${(radius/1000).toFixed(1)} км</span>
-                  <span class="coverage-time">⏱️ ${maxTravelTime} мин</span>
+                <div class="coverage-stats" style="
+                  display: flex;
+                  gap: 12px;
+                  font-size: 11px;
+                  color: #6b7280;
+                ">
+                  <span class="coverage-distance" style="display: flex; align-items: center; gap: 2px;">
+                    🎯 ${(radius/1000).toFixed(1)} км
+                  </span>
+                  <span class="coverage-time" style="display: flex; align-items: center; gap: 2px;">
+                    ⏱️ ${maxTravelTime} мин
+                  </span>
                 </div>
               </div>`,
-              iconSize: [200, 60],
-              iconAnchor: [100, 80]
+              iconSize: [220, 70],
+              iconAnchor: [110, 85]
             })
           });
           
           individualCoverageLayer.addLayer(coverageCircle);
-          individualCoverageLayer.addLayer(centerMarker);
           individualCoverageLayer.addLayer(label);
           
           individualCoverageLayer.addTo(mapInstanceRef.current);
           layersRef.current.individualCoverage = individualCoverageLayer;
           
-          // Центрируем карту на учреждении
-          mapInstanceRef.current.setView(facility.coordinates, 14, { animate: true });
+          // Центрируем карту на учреждении с правильным зумом
+          const currentZoom = mapInstanceRef.current.getZoom();
+          const targetZoom = Math.max(currentZoom, 13);
+          mapInstanceRef.current.setView(facility.coordinates, targetZoom, { animate: true, duration: 0.5 });
           
-          console.log('Индивидуальный радиус создан для:', facility.name);
+          console.log('✅ Индивидуальный радиус успешно создан для:', facility.name);
+          console.log('  - Радиус:', radius, 'метров');
+          console.log('  - Цвет:', config.color);
+          console.log('  - Координаты:', facility.coordinates);
         } catch (error) {
-          console.error('Ошибка создания индивидуального радиуса:', error);
+          console.error('❌ Ошибка создания индивидуального радиуса:', error);
         }
+      } else {
+        console.warn('❌ Учреждение не найдено или некорректные координаты:', {
+          facility: !!facility,
+          coordinates: facility?.coordinates,
+          coordinatesType: Array.isArray(facility?.coordinates),
+          coordinatesLength: facility?.coordinates?.length
+        });
       }
+    } else {
+      console.log('ℹ️ Индивидуальный радиус не отображается:', {
+        selectedFacilityId,
+        facilitiesCount: facilities.length
+      });
     }
-  }, [selectedFacilityId, facilities, maxTravelTime]);
+  }, [selectedFacilityId, facilities, maxTravelTime]); // Добавил facilities в зависимости
 
   // Обновление слоя рекомендаций
   useEffect(() => {
@@ -620,20 +730,6 @@ const InteractiveMap = ({
       mapInstanceRef.current.removeLayer(layersRef.current.districts);
       layersRef.current.districts = null; // Очищаем ссылку
     }
-
-    // Принудительно удаляем все маркеры районов через DOM (на случай если что-то осталось)
-    setTimeout(() => {
-      const districtMarkers = document.querySelectorAll('.district-marker');
-      if (districtMarkers.length > 0) {
-        console.log(`🧹 Принудительно удаляем ${districtMarkers.length} оставшихся маркеров районов`);
-        districtMarkers.forEach(marker => {
-          const parentElement = marker.closest('.leaflet-marker-pane');
-          if (parentElement) {
-            marker.parentElement?.remove();
-          }
-        });
-      }
-    }, 100);
 
     // Если слой населения отключен, не создаем маркеры районов
     if (!activeLayers.population) {
@@ -1201,7 +1297,7 @@ const InteractiveMap = ({
           <!-- Кнопки действий -->
           <div style="display: flex; gap: 6px; margin-top: 12px;">
             <button 
-              onclick="console.log('Кнопка Подробности нажата:', ${facility.id}); if(window.showFacilityDetails) { window.showFacilityDetails(${facility.id}); } else { console.error('showFacilityDetails не найдена'); }"
+              onclick="console.log('Кнопка Подробности нажата для ID:', '${facility.id}'); if(window.showFacilityDetails) { window.showFacilityDetails('${facility.id}'); } else { alert('Функция не найдена'); }"
               style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
               onmouseover="this.style.background='#059669'"
               onmouseout="this.style.background='#10b981'"
@@ -1209,7 +1305,7 @@ const InteractiveMap = ({
               📊 Подробности
             </button>
             <button 
-              onclick="console.log('Кнопка Радиус нажата:', ${facility.id}); if(window.toggleFacilityCoverage) { window.toggleFacilityCoverage(${facility.id}); } else { console.error('toggleFacilityCoverage не найдена'); }"
+              onclick="console.log('Кнопка Радиус нажата для ID:', '${facility.id}'); if(window.toggleFacilityCoverage) { window.toggleFacilityCoverage('${facility.id}'); } else { alert('Функция не найдена'); }"
               style="flex: 1; background: ${iconConfig.color}; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
               onmouseover="this.style.opacity='0.8'"
               onmouseout="this.style.opacity='1'"

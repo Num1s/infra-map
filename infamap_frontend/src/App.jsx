@@ -193,14 +193,6 @@ function App() {
       console.log('selectedFacilityType:', selectedFacilityType);
       console.log('travelTime:', travelTime);
       
-      // Дополнительная проверка: рекомендации должны генерироваться только по кнопке
-      if (!showRecommendations && activeLayers.recommendations) {
-        console.warn('⚠️ Попытка автоматической генерации рекомендаций заблокирована');
-        console.log('  - showRecommendations:', showRecommendations);
-        console.log('  - activeLayers.recommendations:', activeLayers.recommendations);
-        return;
-      }
-      
       const params = {
         facility_type: selectedFacilityType,
         max_travel_time: travelTime
@@ -637,6 +629,7 @@ function App() {
               recommendations={recommendations}
               darkMode={darkMode}
               setDarkMode={setDarkMode}
+              onShowFacilityDetails={handleShowFacilityDetails}
             />
             
             {statistics && showResultsPanel && (

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getMockFacilities, isFacilityTypeSupported, MOCK_ANALYTICS } from './mockData.js';
 
 // Определяем базовый URL в зависимости от окружения
 // Временно используем прямое подключение для отладки
@@ -226,13 +227,9 @@ export const apiService = {
   // Получить все учреждения
   async getFacilities() {
     try {
-      console.log('🏢 ЗАПРОС УЧРЕЖДЕНИЙ:');
-      console.log('Запрашиваем школы и клиники...');
-      console.log('🔧 КОНФИГУРАЦИЯ API:');
-      console.log('  - API_BASE_URL:', API_BASE_URL);
-      console.log('  - NODE_ENV:', process.env.NODE_ENV);
-      console.log('  - Полный URL школ:', `${API_BASE_URL}/get-schools/`);
-      console.log('  - Полный URL клиник:', `${API_BASE_URL}/get-clinics/`);
+      console.log('🔍 Начинаем загрузку данных учреждений...');
+      console.log('📡 Полный URL для школ:', `${API_BASE_URL}/get-schools/`);
+      console.log('📡 Полный URL для клиник:', `${API_BASE_URL}/get-clinics/`);
 
       // Получаем школы
       console.log('📡 Запрос школ...');
@@ -346,14 +343,46 @@ export const apiService = {
         });
       }
 
-      // Объединяем все учреждения
+      // Объединяем реальные данные
       const allFacilities = [...schools, ...clinics];
+      
+      // Добавляем фейковые данные для неподдерживаемых типов
+      console.log('🔄 Добавляем фейковые данные для демонстрации...');
+      
+      // НЕ добавляем фейковые клиники - у них есть реальные данные!
+      
+      // Добавляем фейковые пожарные станции
+      const fireStations = getMockFacilities('fire_station');
+      console.log(`🔄 Получили пожарные станции:`, fireStations.length);
+      allFacilities.push(...fireStations);
+      console.log(`✅ Добавлено ${fireStations.length} фейковых пожарных станций`);
+      
+      // Добавляем фейковые полицейские участки
+      const policeStations = getMockFacilities('police_station');
+      console.log(`🔄 Получили полицейские участки:`, policeStations.length);
+      allFacilities.push(...policeStations);
+      console.log(`✅ Добавлено ${policeStations.length} фейковых полицейских участков`);
+      
+      // Добавляем фейковые почтовые отделения
+      const postOffices = getMockFacilities('post_office');
+      console.log(`🔄 Получили почтовые отделения:`, postOffices.length);
+      allFacilities.push(...postOffices);
+      console.log(`✅ Добавлено ${postOffices.length} фейковых почтовых отделений`);
+      
+      // Добавляем фейковые поликлиники
+      const polyclinics = getMockFacilities('polyclinic');
+      console.log(`🔄 Получили поликлиники:`, polyclinics.length);
+      allFacilities.push(...polyclinics);
+      console.log(`✅ Добавлено ${polyclinics.length} фейковых поликлиник`);
+      
       console.log('📈 ИТОГОВАЯ СТАТИСТИКА:');
-      console.log(`  - Всего школ: ${schools.length}`);
-      console.log(`  - Всего клиник: ${clinics.length}`);
-      console.log(`  - Больниц: ${clinics.filter(c => c.type === 'hospital').length}`);
-      console.log(`  - Поликлиник: ${clinics.filter(c => c.type === 'polyclinic').length}`);
-      console.log(`  - Общих клиник: ${clinics.filter(c => c.type === 'clinic').length}`);
+      console.log(`  - Школ: ${allFacilities.filter(f => f.type === 'school').length}`);
+      console.log(`  - Больниц: ${allFacilities.filter(f => f.type === 'hospital').length}`);
+      console.log(`  - Клиник: ${allFacilities.filter(f => f.type === 'clinic').length}`);
+      console.log(`  - Поликлиник: ${allFacilities.filter(f => f.type === 'polyclinic').length}`);
+      console.log(`  - Пожарных станций: ${allFacilities.filter(f => f.type === 'fire_station').length}`);
+      console.log(`  - Полицейских участков: ${allFacilities.filter(f => f.type === 'police_station').length}`);
+      console.log(`  - Почтовых отделений: ${allFacilities.filter(f => f.type === 'post_office').length}`);
       console.log(`  - ИТОГО учреждений: ${allFacilities.length}`);
       
       console.log('✅ Данные учреждений обработаны и готовы для отображения');
@@ -555,10 +584,15 @@ export const apiService = {
       };
 
       // Если запрашиваются рекомендации для школ или клиник, получаем провальные зоны
-      if (params.facility_type === 'school' || params.facility_type === 'clinic') {
+      if (params.facility_type === 'school' || params.facility_type === 'clinic' || params.facility_type === 'hospital') {
         try {
           console.log(`📍 Получаем провальные зоны для ${params.facility_type}...`);
-          const gapData = await this.getGapZones(params.facility_type, true);
+          
+          // Преобразуем hospital в clinic для API
+          const apiType = params.facility_type === 'hospital' ? 'clinic' : params.facility_type;
+          console.log(`📍 Тип для API: ${apiType}`);
+          
+          const gapData = await this.getGapZones(apiType, true);
           
           console.log('📊 Получены данные провальных зон:', gapData);
           console.log(`🏫 Количество рекомендаций:`, gapData.gap_recommendations?.length);
@@ -663,27 +697,9 @@ export const apiService = {
   // Получить провальные зоны для учреждений (школ или клиник)
   async getGapZones(facilityType = 'schools', userInitiated = false) {
     try {
-      // Защита от автоматических вызовов - разрешаем только если это инициировано пользователем
-      if (!userInitiated) {
-        console.warn('🚫 ЗАБЛОКИРОВАН АВТОМАТИЧЕСКИЙ ЗАПРОС getGapZones:');
-        console.warn(`  - facilityType: ${facilityType}`);
-        console.warn(`  - userInitiated: ${userInitiated}`);
-        console.warn('  - Запросы рекомендаций должны инициироваться только пользователем!');
-        
-        // Логируем stack trace чтобы понять откуда идет вызов
-        console.warn('📍 STACK TRACE автоматического вызова:');
-        console.trace();
-        
-        // Возвращаем пустой результат для автоматических вызовов
-        return {
-          total_gaps: 0,
-          gap_recommendations: [],
-          districts_data: {},
-          districts_count: 0
-        };
-      }
-      
-      console.log('✅ АВТОРИЗОВАННЫЙ ЗАПРОС getGapZones (пользователь нажал кнопку)');
+      console.log('✅ ЗАПРОС getGapZones:');
+      console.log(`  - facilityType: ${facilityType}`);
+      console.log(`  - userInitiated: ${userInitiated}`);
       
       // Поддерживаем разные типы учреждений
       const typeMap = {

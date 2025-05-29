@@ -132,39 +132,8 @@
   }
 }
 
-@keyframes priorityBadgePulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes recommendationGlow {
-  0%, 100% {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-  }
-  50% {
-    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
-  }
-}
-
-@keyframes priorityBadgePulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
 .marker-recommended {
   animation: recommendationPulse 3s ease-in-out infinite;
-}
-
-.priority-badge {
-  animation: priorityBadgePulse 2s ease-in-out infinite;
 }
 
 /* Map controls styling */
@@ -349,15 +318,6 @@
   to {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
   }
 }
 
@@ -690,12 +650,16 @@
 }
 
 .individual-coverage-zone {
-  animation: individualCoveragePulse 2s ease-in-out infinite;
+  animation: individualCoveragePulse 4s ease-in-out infinite;
 }
 
-/* Стили для центральной точки индивидуального радиуса */
-.individual-coverage-center {
-  animation: individualCoveragePulse 2s ease-in-out infinite;
+@keyframes coverageFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 /* Стили для подписи индивидуального радиуса */
@@ -705,17 +669,21 @@
 
 /* Карточка информации о радиусе покрытия */
 .coverage-info-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  border-radius: 16px;
-  padding: 12px 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  min-width: 180px;
-  max-width: 220px;
-  font-family: system-ui, -apple-system, sans-serif;
-  animation: slideInUp 0.3s ease-out;
-  transform: translateY(-20px);
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  animation: coverageCardFadeIn 0.5s ease-out;
+}
+
+@keyframes coverageCardFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
 }
 
 .coverage-header {
@@ -1217,4 +1185,127 @@ input:focus-visible {
 .district-marker:hover div {
   transform: scale(1.1) !important;
   animation-play-state: paused;
+}
+
+/* Улучшенные стили для модального окна деталей */
+.facility-details-modal {
+  backdrop-filter: blur(5px);
+}
+
+.facility-details-content {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+/* Специальные стили для заглушек */
+.placeholder-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.placeholder-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Стили для предупреждений о данных в разработке */
+.dev-warning {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  animation: warningGlow 3s ease-in-out infinite;
+}
+
+@keyframes warningGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+  }
+}
+
+/* Улучшенные стили для popup кнопок */
+.leaflet-popup-content button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-popup-content button:active {
+  transform: translateY(0px) !important;
+}
+
+.leaflet-popup-content button {
+  transition: all 0.2s ease !important;
+}
+
+/* Заглушки для демонстрационных данных */
+.mock-data-indicator {
+  position: relative;
+}
+
+.mock-data-indicator::before {
+  content: "🔄";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 12px;
+  opacity: 0.7;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes recommendationGlow {
+  0%, 100% {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+  }
+}
+
+.marker-recommended {
+  animation: recommendationPulse 3s ease-in-out infinite;
+}
+
+.priority-badge {
+  animation: priorityBadgePulse 2s ease-in-out infinite;
 } 
