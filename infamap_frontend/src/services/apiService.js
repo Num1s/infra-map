@@ -3,7 +3,7 @@ import { getMockFacilities, isFacilityTypeSupported, MOCK_ANALYTICS } from './mo
 
 // Определяем базовый URL в зависимости от окружения
 // Временно используем прямое подключение для отладки
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'http://127.168.0.36:3001/api/v1/';
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);

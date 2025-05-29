@@ -1308,4 +1308,667 @@ input:focus-visible {
 
 .priority-badge {
   animation: priorityBadgePulse 2s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ INFRAMAP
+   ========================================================================== */
+
+/* Базовые брейкпоинты */
+/* xs: 0px - 479px (мобильные телефоны)
+   sm: 480px - 767px (крупные мобильные)
+   md: 768px - 1023px (планшеты)
+   lg: 1024px+ (десктоп) */
+
+/* ==========================================================================
+   EXTRA SMALL DEVICES (до 479px) - мобильные телефоны
+   ========================================================================== */
+@media (max-width: 479px) {
+  /* Основной контейнер */
+  .app-container {
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Карта на мобильных */
+  .leaflet-container {
+    height: 100vh !important;
+    touch-action: pan-x pan-y;
+  }
+
+  /* Панели управления - стек вертикально */
+  .control-panel {
+    position: absolute !important;
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    z-index: 1000 !important;
+    max-height: 40vh !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    font-size: 14px !important;
+    transform: translateY(0) !important;
+    transition: transform 0.3s ease, opacity 0.3s ease !important;
+  }
+
+  /* Скрытие панели управления */
+  .control-panel.hidden {
+    transform: translateY(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Панель результатов внизу */
+  .results-panel {
+    position: absolute !important;
+    bottom: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    z-index: 1000 !important;
+    max-height: 35vh !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+    font-size: 14px !important;
+  }
+
+  /* Кнопки управления панелями */
+  .panel-toggle-btn {
+    position: absolute !important;
+    z-index: 1001 !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 50% !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .panel-toggle-btn:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    transform: scale(1.05) !important;
+  }
+
+  .toggle-control-panel {
+    top: 10px !important;
+    right: 60px !important;
+  }
+
+  .toggle-results-panel {
+    bottom: 10px !important;
+    right: 60px !important;
+  }
+
+  /* Форма поиска */
+  .search-form {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+  }
+
+  .search-input {
+    width: 100% !important;
+    font-size: 16px !important; /* Предотвращение зума на iOS */
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Селекты и инпуты */
+  select, input {
+    width: 100% !important;
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Кнопки */
+  .btn-primary, .btn-secondary {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Компактные кнопки для экономии места */
+  .btn-compact {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    margin: 2px !important;
+    display: inline-block !important;
+    width: auto !important;
+  }
+
+  /* Сетка кнопок */
+  .button-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  /* Маркеры на карте */
+  .facility-marker .w-12 {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .facility-marker .w-8 {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .recommendation-marker .w-14 {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Попапы */
+  .leaflet-popup-content-wrapper {
+    max-width: 250px !important;
+    font-size: 14px !important;
+  }
+
+  .leaflet-popup-content {
+    margin: 8px 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .popup-button {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    margin: 4px 2px !important;
+  }
+
+  /* Модальные окна */
+  .modal-container {
+    margin: 10px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-content {
+    padding: 16px !important;
+    font-size: 14px !important;
+  }
+
+  .modal-header {
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+
+  /* Легенда карты */
+  .legend-container {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 70px !important;
+    right: 10px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    max-width: 150px !important;
+  }
+
+  /* Контролы карты Leaflet */
+  .leaflet-control-zoom {
+    margin-right: 15px !important;
+    margin-top: 60px !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 34px !important;
+    font-size: 18px !important;
+  }
+
+  /* Статистика */
+  .stats-container {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .stat-card {
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+
+  /* Скрытие второстепенных элементов */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* Аккордеон для экономии места */
+  .accordion-section {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .accordion-header {
+    padding: 12px 0 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-weight: 500 !important;
+  }
+
+  .accordion-content {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease !important;
+  }
+
+  .accordion-content.open {
+    max-height: 300px !important;
+    padding-bottom: 12px !important;
+  }
+
+  /* Тач-френдли элементы */
+  .touch-target {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
+/* ==========================================================================
+   SMALL DEVICES (480px - 767px) - большие мобильные устройства
+   ========================================================================== */
+@media (min-width: 480px) and (max-width: 767px) {
+  /* Панели управления */
+  .control-panel {
+    position: absolute !important;
+    top: 15px !important;
+    left: 15px !important;
+    width: 300px !important;
+    max-height: 45vh !important;
+    z-index: 1000 !important;
+    padding: 16px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .results-panel {
+    position: absolute !important;
+    bottom: 15px !important;
+    left: 15px !important;
+    right: 15px !important;
+    max-height: 40vh !important;
+    z-index: 1000 !important;
+    padding: 16px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Кнопки */
+  .btn-primary, .btn-secondary {
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+  }
+
+  /* Сетка кнопок для лучшего использования пространства */
+  .button-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Маркеры */
+  .facility-marker .w-12 {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .recommendation-marker .w-14 {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Модальные окна */
+  .modal-container {
+    margin: 15px !important;
+    max-height: 85vh !important;
+  }
+}
+
+/* ==========================================================================
+   MEDIUM DEVICES (768px - 1023px) - планшеты
+   ========================================================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Панели располагаются сбоку */
+  .control-panel {
+    position: absolute !important;
+    top: 20px !important;
+    left: 20px !important;
+    width: 320px !important;
+    max-height: 70vh !important;
+    z-index: 1000 !important;
+    padding: 20px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .results-panel {
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 350px !important;
+    max-height: 70vh !important;
+    z-index: 1000 !important;
+    padding: 20px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Кнопки нормального размера */
+  .btn-primary, .btn-secondary {
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+  }
+
+  /* Сетка кнопок */
+  .button-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Модальные окна занимают больше места */
+  .modal-container {
+    margin: 40px !important;
+    max-height: 80vh !important;
+  }
+}
+
+/* ==========================================================================
+   ЛАНДШАФТНАЯ ОРИЕНТАЦИЯ
+   ========================================================================== */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Уменьшаем панели для экономии вертикального пространства */
+  .control-panel {
+    max-height: 35vh !important;
+    padding: 12px !important;
+  }
+
+  .results-panel {
+    max-height: 30vh !important;
+    padding: 12px !important;
+  }
+
+  /* Компактные элементы управления */
+  .btn-primary, .btn-secondary {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+  }
+
+  /* Модальные окна на весь экран */
+  .modal-container {
+    margin: 10px !important;
+    max-height: 95vh !important;
+  }
+
+  /* Контролы карты ближе к краю */
+  .leaflet-control-zoom {
+    margin-top: 10px !important;
+  }
+}
+
+/* ==========================================================================
+   АДАПТАЦИЯ ДЛЯ СТАРЫХ МОБИЛЬНЫХ БРАУЗЕРОВ
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Отключаем некоторые эффекты для производительности */
+  .leaflet-container {
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+  }
+
+  /* Упрощенные анимации */
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+
+  /* Отключаем тени для экономии ресурсов */
+  .performance-mode .card,
+  .performance-mode .modal-container,
+  .performance-mode .control-panel,
+  .performance-mode .results-panel {
+    box-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+/* ==========================================================================
+   TOUCH-FRIENDLY ИНТЕРФЕЙС
+   ========================================================================== */
+@media (pointer: coarse) {
+  /* Увеличиваем размеры кликабельных элементов */
+  button, .btn, input[type="button"], input[type="submit"] {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Увеличиваем отступы между элементами */
+  .form-group {
+    margin-bottom: 16px !important;
+  }
+
+  /* Больше пространства для текста */
+  input, select, textarea {
+    padding: 14px 16px !important;
+    font-size: 16px !important;
+  }
+
+  /* Увеличенные маркеры карты */
+  .facility-marker {
+    transform: scale(1.2) !important;
+  }
+
+  .recommendation-marker {
+    transform: scale(1.3) !important;
+  }
+}
+
+/* ==========================================================================
+   АДАПТАЦИЯ ДЛЯ ТЁМНОЙ ТЕМЫ НА МОБИЛЬНЫХ
+   ========================================================================== */
+@media (max-width: 767px) {
+  .dark .control-panel,
+  .dark .results-panel {
+    background: rgba(31, 41, 55, 0.95) !important;
+    border: 1px solid rgba(75, 85, 99, 0.3) !important;
+  }
+
+  .dark .panel-toggle-btn {
+    background: rgba(31, 41, 55, 0.9) !important;
+    color: white !important;
+  }
+
+  .dark .legend-container {
+    background: rgba(31, 41, 55, 0.9) !important;
+    color: white !important;
+  }
+}
+
+/* ==========================================================================
+   СПЕЦИАЛЬНЫЕ СТИЛИ ДЛЯ iOS SAFARI
+   ========================================================================== */
+@supports (-webkit-touch-callout: none) {
+  /* Фикс для iOS Safari viewport */
+  .app-container {
+    min-height: -webkit-fill-available !important;
+  }
+
+  /* Предотвращение зума при фокусе на input */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Фикс для iOS scrolling */
+  .control-panel,
+  .results-panel,
+  .modal-container {
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* ==========================================================================
+   АДАПТИВНЫЕ УТИЛИТАРНЫЕ КЛАССЫ
+   ========================================================================== */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: block !important;
+}
+
+@media (max-width: 767px) {
+  .mobile-only {
+    display: block !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  .mobile-text-center {
+    text-align: center !important;
+  }
+
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .mobile-margin-bottom {
+    margin-bottom: 16px !important;
+  }
+}
+
+/* ==========================================================================
+   АНИМАЦИИ ДЛЯ ПАНЕЛЕЙ
+   ========================================================================== */
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-top {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.slide-in-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+/* ==========================================================================
+   АДАПТАЦИЯ ДЛЯ МАЛЕНЬКИХ ЭКРАНОВ (< 360px)
+   ========================================================================== */
+@media (max-width: 359px) {
+  .control-panel,
+  .results-panel {
+    left: 5px !important;
+    right: 5px !important;
+    padding: 8px !important;
+  }
+
+  .panel-toggle-btn {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+
+  .search-input {
+    padding: 10px 12px !important;
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: 200px !important;
+  }
 } 
